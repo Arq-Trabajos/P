@@ -24,7 +24,7 @@ module alu (
 
   	assign Overflow = ~(ALUControl[0]^A[31]^B[31]) & (Sum[31]^A[31]) & ~ALUControl[1]; // Overflow flag wire
 	assign Zero = 32'b0 == Result & 32'b0 == ResultExtra; // If every bit is 0, then the zero result flag will activate
-	assign Negative = ALUControl[2] ? ResultExtra[31] : Result[31]; // If the first bit from the left is 1,  the result will be negative
+	assign Negative = ALUControl[2] ? (A[31]^B[31]) : Result[31]; // If the first bit from the left is 1,  the result will be negative
 	assign Carry = ~ALUControl[1] & Sum[32]; // Carry will be 1 if the ALUControl signal is addition or subtraction and if the 1st bit from the left bit is 1
 
 	assign ALUFlags = {Negative, Zero, Carry, Overflow}; // We group each bit-flag to the ALUFlags output    

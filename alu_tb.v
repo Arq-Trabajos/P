@@ -1,4 +1,4 @@
-`include "alu.v"
+`include "ALU.v"
 module alu_tb;
 
     reg [2:0] ALUControl; 
@@ -8,7 +8,7 @@ module alu_tb;
     wire [31:0] Result; 
     wire [31:0] ResultExtra;
 
-    alu ALUtest(ALUControl, A, B, ALUFlags, Result, ResultExtra);
+    ALU ALUtest(ALUControl, A, B, ALUFlags, Result, ResultExtra);
 
     initial begin
 
@@ -17,7 +17,7 @@ module alu_tb;
         B = 23;
 
         #1;
-        $display("%b %d %d %b %d %d",ALUControl, A, B, ALUFlags, Result, ResultExtra);
+        $display("%b %b %b %b %b %b",ALUControl, A, B, ALUFlags, Result, ResultExtra);
 
 
     end
