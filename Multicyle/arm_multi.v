@@ -494,6 +494,7 @@ endmodule
 // it is composed of instances of its sub-modules. For example,
 // the instruction register is instantiated as a 32-bit flopenr.
 // The other submodules are likewise instantiated. 
+
 module datapath (
 	clk,
 	reset,
