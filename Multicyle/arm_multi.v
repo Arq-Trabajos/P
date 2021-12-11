@@ -520,6 +520,41 @@ module datapath (
 	output wire [31:0] WriteData;
 	input wire [31:0] ReadData;
 	output wire [31:0] Instr;
+
+	// Register handling
+	if (Instr[25:24] == 2'b00) begin
+		regfile mulregfile(
+			.cond(Instr[31:28]),
+			.Op(Instr[27:26]),
+			.cmd(Instr[23:21]),
+			.S(Instr[20]),
+			.Rd(Intr[19:16]),
+			.Ra(Instr[15:12]),
+			.Rm(Instr[11:8]),
+			.Rn(Instr[3:0])
+		);
+	end
+
+	else if (Instr[23:20] != 2'b00) begin
+		regfile memoryInst(
+			.cond(Instr[31:28]),
+			.Op(Instr[27:26]),
+			.Funct(Instr[25:20])
+			.Rn(Intr[19:16]),
+			.Rd(Instr[15:12]),
+			.Src2(Instr[11:0])
+		);
+	end
+	else if (Instr[23:20] != 2'b00) begin
+		regfile memoryInst(
+			.cond(Instr[31:28]),
+			.Op(Instr[27:26]),
+			.Funct(Instr[25:20])
+			.Rn(Intr[19:16]),
+			.Rd(Instr[15:12]),
+			.Src2(Instr[11:0])
+		);
+	end
 	output wire [3:0] ALUFlags;
 	input wire PCWrite;
 	input wire RegWrite;
@@ -553,6 +588,8 @@ module datapath (
 	// (Address Mux), etc. so that your code is easier to understand.
 
 	// ADD CODE HERE
+	// Falta añadir el código para el datapath
+
 endmodule
 
 // ADD CODE BELOW
@@ -577,14 +614,60 @@ module mux3 (
 	assign y = (s[1] ? d2 : (s[0] ? d1 : d0));
 endmodule
 
-module reg_file(
-	clk,
-	reset,
+// Register file para mem
+module mulregfile(
 	cond,
 	Op,
-	funct,
+	cmd,
+	S,
 	Rd,
 	Ra,
-	Src2
-);
+	Rn,
+	Rm
+)
+	input wire cond[3:0];
+	input wire Op[1:0];
+	input wire cmd[2:0];
+	input wire S;
+	output wire Rd[3:0];
+	output wire Ra[3:0];
+	output wire Rn[3:0];
+	output wire Rm[3:0];
+	
+
 endmodule
+
+
+// Register file para multiplicacion
+module memoryInst(
+	cond,
+	Op,
+	Funct,
+	Rn,
+	Rd,
+	Src2
+)
+	input wire cond[3:0];
+	input wire Op[1:0];
+
+
+endmodule
+
+// Data-processing instructions
+//   ADD, SUB, AND, ORR
+//   INSTR <cond> <S> <Rd>, <Rn>, #immediate
+//   INSTR <cond> <S> <Rd>, <Rn>, <Rm>
+//    Rd <- <Rn> INSTR <Rm>	    	if (S) Update Status Flags
+//    Rd <- <Rn> INSTR immediate	if (S) Update Status Flags
+//   Instr[31:28] = cond
+//   Instr[27:26] = Op = 00
+//   Instr[25:20] = Funct
+//                  [25]:    1 for immediate, 0 for register
+//                  [24:21]: 0100 (ADD) / 0010 (SUB) /
+//                           0000 (AND) / 1100 (ORR)
+//                  [20]:    S (1 = update CPSR status Flags)
+//   Instr[19:16] = Rn
+//   Instr[15:12] = Rd
+//   Instr[11:8]  = 0000
+//   Instr[7:0]   = immed_8  (for #immediate type) / 
+//                  0000<Rm> (for register type)
