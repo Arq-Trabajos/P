@@ -578,6 +578,13 @@ module mux3 (
 endmodule
 
 module reg_file(
-	
-)
+	clk,
+	reset,
+	cond,
+	Op,
+	funct,
+	Rd,
+	Ra,
+	Src2
+);
 endmodule
