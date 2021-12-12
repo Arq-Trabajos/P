@@ -145,7 +145,7 @@ module arm (
 	wire [1:0] ALUSrcA;
 	wire [1:0] ALUSrcB;
 	wire [1:0] ImmSrc;
-	wire [1:0] ALUControl;
+	wire [2:0] ALUControl;
 	wire [1:0] ResultSrc;
 	controller c(
 		.clk(clk),
@@ -216,7 +216,7 @@ module controller (
 	output wire [1:0] ALUSrcB;
 	output wire [1:0] ResultSrc;
 	output wire [1:0] ImmSrc;
-	output wire [1:0] ALUControl;
+	output wire [2:0] ALUControl;
 	wire [1:0] FlagW;
 	wire PCS;
 	wire NextPC;
@@ -295,7 +295,7 @@ module decode (
 	output wire [1:0] ALUSrcB;
 	output wire [1:0] ImmSrc;
 	output wire [1:0] RegSrc;
-	output wire [1:0] ALUControl;
+	output wire [2:0] ALUControl;
 	wire Branch;
 	wire ALUOp;
 
@@ -334,17 +334,18 @@ module decode (
 	always @(*) begin
 		if (ALUOp) begin
 			case (Funct[4:1])
-				4'b0100: ALUControl = 2'b00;
-				4'b0010: ALUControl = 2'b01;
-				4'b0000: ALUControl = 2'b10;
-				4'b1100: ALUControl = 2'b11;
-				default: ALUControl = 2'bxx;
+				4'b0100: ALUControl = 3'b000;
+				4'b0010: ALUControl = 3'b001;
+				4'b0000: ALUControl = 3'b010;
+				4'b1100: ALUControl = 3'b011;
+				4'b1000: ALUControl = 3'b100;
+				default: ALUControl = 3'bxxx;
 			endcase
 			FlagW[1] <= Funct[0];
-			FlagW[0] <= Funct[0] & ((ALUControl == 2'b00) | (ALUControl == 2'b01));
+			FlagW[0] <= Funct[0] & ((ALUControl == 3'b000) | (ALUControl == 3'b001));
 		end 
 		else begin
-			ALUControl = 2'b00;
+			ALUControl = 3'b00;
 			FlagW = 2'b00;
 		end
 	end
@@ -621,7 +622,7 @@ module datapath (
 	output wire [31:0] Instr;
 
 	// Register handling
-	if (Instr[25:24] == 2'b00) begin
+	if (Instr[25] == 1'b0 & Instr[7:4] == 4'b1001) begin
 		regfile mulregfile(
 			.cond(Instr[31:28]),
 			.Op(Instr[27:26]),
@@ -633,8 +634,21 @@ module datapath (
 			.Rn(Instr[3:0])
 		);
 	end
+	
+	else if (Instr[27:26] == 2'b00) begin
+		regfile regDataProcessing(
+			.cond(Instr[31:28]),
+			.Op(Instr[27:26]),
+			.I(Instr[25]),
+			.cmd(Instr[24:21]),
+			.S(Instr[20]),
+			.Rn(Instr[19:16]),
+			.Rd(Instr[15:12]),
+			.Src2(Instr[11:0])
+		);
+	end
 
-	else if (Instr[23:20] != 2'b00) begin
+	else if (Instr[27:26] != 2'b00 & Instr[6:5] != 2'b00) begin
 		regfile memoryInst(
 			.cond(Instr[31:28]),
 			.Op(Instr[27:26]),
@@ -674,7 +688,7 @@ module datapath (
 	input wire [1:0] ALUSrcB;
 	input wire [1:0] ResultSrc;
 	input wire [1:0] ImmSrc;
-	input wire [1:0] ALUControl;
+	input wire [2:0] ALUControl;
 	wire [31:0] PCNext;
 	wire [31:0] PC;
 	wire [31:0] ExtImm;
@@ -686,6 +700,7 @@ module datapath (
 	wire [31:0] RD2;
 	wire [31:0] A;
 	wire [31:0] ALUResult;
+	wire [31:0] ALUResultExtra;
 	wire [31:0] ALUOut;
 	wire [3:0] RA1;
 	wire [3:0] RA2;
@@ -727,7 +742,14 @@ module datapath (
 
 	mux3 alusrcb(WriteData, ExtImm, 4, ALUSrcB, SrcB);
 
-	alu alu_dp(SrcA ,SrcB, ALUControl ,ALUResult, ALUFlags);
+	alu alu_dp(
+		.A(SrcA),
+		.B(SrcB), 
+		.ALUControl(ALUControl),
+		.ALUResult(ALUResult),
+		.ALUResultExtra(ALUResultExtra),
+		.ALUFlags(ALUFlags)
+		);
 
 	always @(posedge clk) begin
 		ALUOut <= ALUResult;
@@ -998,12 +1020,12 @@ module regInstBranch(
 	funct,
 	immd,
 );
-	input reg cond[3:0];
-	input reg Op[1:0];
-	input reg funct[1:0];
-	input reg immd[23:0];
-	reg PC[31:0]; 
-	reg LR[31:0];
+	input wire cond[3:0];
+	input wire Op[1:0];
+	input wire funct[1:0];
+	input wire immd[23:0];
+	wire PC[31:0]; 
+	wire LR[31:0];
 
 	always @(*) begin
 		if (funct == 2'b00) begin
@@ -1015,5 +1037,77 @@ module regInstBranch(
 		end
 	end
 
+
+endmodule
+
+// register file for data processing
+module regDataProcessing(
+	cond,
+	Op,
+	I,
+	cmd,
+	S,
+	Rn,
+	Rd,
+	Src2
+);
+	input wire cond[3:0];
+	input wire Op[1:0];
+	input wire I;
+	input wire cmd[2:0];
+	input wire Src2[11:0];
+	input S;
+	output wire Rn[3:0];
+	output wire Rd[3:0];
+
+	always @(*) begin
+		case (cmd)
+			4'b0000: Rd <= Rn & Src2;
+			4'b0001: Rd <= Rn ^ Src2;
+			4'b0010: Rd <= Rn - Src2;
+			4'b0011: Rd <= Src2 - Rn;
+			4'b0100: Rd <= Rn + Src2;
+			4'b1000: 
+				if (S == 1'b1) begin
+					//Set flags based on Rn & Src2
+				end
+			4'b1001:
+				if (S == 1'b1) begin
+					//Set flags based on Rn ^ Src2
+				end
+			4'b1010:
+				if (S == 1'b1) begin
+					//Set flags based on Rn - Src2
+				end
+			4'b1011:
+				if (S == 1'b1) begin
+					//Set flags based on Src2 - Rn
+				end
+			4'b1100: Rd <= Rn | Src2;
+			4'b1101:
+				if (I == 1'b1 & Src2[11:4] == 8'b0) begin
+					
+				end
+				else if (I == 1'b0) begin
+					case (Src2[6:5])
+						2'b00: 
+							if (Src2[11:4] != 8'b0) begin
+								//Rd ← Rm << Src2
+							end
+						2'b01: //Rd ← Rm >> Src2
+						2'b10: //Rd ← Rm>>>Src2
+						2'b11:
+							case (Src2[11:7])
+								4'b0: //{Rd, C} ← {C, Rd}
+								default: //Rd ← Rn ror Src2
+							endcase
+						default: 
+					endcase
+				end
+			4'b1110: Rd <= Rn & Src2;
+			4'b1111: Rd <= Rn & Src2;
+			default:
+		endcase
+	end
 
 endmodule

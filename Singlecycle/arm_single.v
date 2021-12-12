@@ -397,8 +397,8 @@ module datapath (
 	input wire [31:0] Instr;
 
 	// Register handling
-	if (Instr[25:24] == 2'b00) begin
-		regfile mulregfile(
+	if (Instr[25] == 1'b0 & Instr[7:4] == 4'b1001) begin
+		mulregfile regfile(
 			.cond(Instr[31:28]),
 			.Op(Instr[27:26]),
 			.cmd(Instr[23:21]),
@@ -409,9 +409,22 @@ module datapath (
 			.Rn(Instr[3:0])
 		);
 	end
+	
+	else if (Instr[27:26] == 2'b00) begin
+		regDataProcessing regfile(
+			.cond(Instr[31:28]),
+			.Op(Instr[27:26]),
+			.I(Instr[25]),
+			.cmd(Instr[24:21]),
+			.S(Instr[20]),
+			.Rn(Instr[19:16]),
+			.Rd(Instr[15:12]),
+			.Src2(Instr[11:0])
+		);
+	end
 
-	else if (Instr[23:20] != 2'b00) begin
-		regfile memoryInst(
+	else if (Instr[27:26] != 2'b00 & Instr[6:5] != 2'b00) begin
+		memoryInst regfile(
 			.cond(Instr[31:28]),
 			.Op(Instr[27:26]),
 			.Funct(Instr[25:20])
@@ -423,7 +436,7 @@ module datapath (
 		);
 	end
 	else if (Instr[23:20] != 2'b00) begin
-		regfile regInstBranch(
+		regInstBranch regfile(
 			.cond(Instr[31:28]),
 			.Op(Instr[27:26]),
 			.Funct(Instr[25:20])
@@ -433,7 +446,7 @@ module datapath (
 		);
 	end
 	else if (Instr[27:26] == 2'b10) begin
-		regfile regInstBranch(
+		regDataProcessing regfile(
 			.cond(Instr[31:28]),
 			.Op(Instr[27:26]),
 			.funct(Instr[25:24]),
@@ -487,17 +500,6 @@ module datapath (
 		.s(RegSrc[1]),
 		.y(RA2)
 	);
-	regfile rf(
-		.clk(clk),
-		.we3(RegWrite),
-		.ra1(RA1),
-		.ra2(RA2),
-		.wa3(Instr[15:12]),
-		.wd3(Result),
-		.r15(PCPlus8),
-		.rd1(SrcA),
-		.rd2(WriteData)
-	);
 	mux2 #(32) resmux(
 		.d0(ALUResult),
 		.d1(ReadData),
@@ -522,34 +524,6 @@ module datapath (
 		ALUResult,
 		ALUFlags
 	);
-endmodule
-
-module regfile (
-	clk,
-	we3,
-	ra1,
-	ra2,
-	wa3,
-	wd3,
-	r15,
-	rd1,
-	rd2
-);
-	input wire clk;
-	input wire we3;
-	input wire [3:0] ra1;
-	input wire [3:0] ra2;
-	input wire [3:0] wa3;
-	input wire [31:0] wd3;
-	input wire [31:0] r15;
-	output wire [31:0] rd1;
-	output wire [31:0] rd2;
-	reg [31:0] rf [14:0];
-	always @(posedge clk)
-		if (we3)
-			rf[wa3] <= wd3;
-	assign rd1 = (ra1 == 4'b1111 ? r15 : rf[ra1]);
-	assign rd2 = (ra2 == 4'b1111 ? r15 : rf[ra2]);
 endmodule
 
 module extend (
@@ -785,5 +759,77 @@ module regInstBranch(
 		end
 	end
 
+
+endmodule
+
+// register file for data processing
+module regDataProcessing(
+	cond,
+	Op,
+	I,
+	cmd,
+	S,
+	Rn,
+	Rd,
+	Src2
+);
+	input wire cond[3:0];
+	input wire Op[1:0];
+	input wire I;
+	input wire cmd[2:0];
+	input wire Src2[11:0];
+	input S;
+	output wire Rn[3:0];
+	output wire Rd[3:0];
+
+	always @(*) begin
+		case (cmd)
+			4'b0000: Rd <= Rn & Src2;
+			4'b0001: Rd <= Rn ^ Src2;
+			4'b0010: Rd <= Rn - Src2;
+			4'b0011: Rd <= Src2 - Rn;
+			4'b0100: Rd <= Rn + Src2;
+			4'b1000: 
+				if (S == 1'b1) begin
+					//Set flags based on Rn & Src2
+				end
+			4'b1001:
+				if (S == 1'b1) begin
+					//Set flags based on Rn ^ Src2
+				end
+			4'b1010:
+				if (S == 1'b1) begin
+					//Set flags based on Rn - Src2
+				end
+			4'b1011:
+				if (S == 1'b1) begin
+					//Set flags based on Src2 - Rn
+				end
+			4'b1100: Rd <= Rn | Src2;
+			4'b1101:
+				if (I == 1'b1 & Src2[11:4] == 8'b0) begin
+					
+				end
+				else if (I == 1'b0) begin
+					case (Src2[6:5])
+						2'b00: 
+							if (Src2[11:4] != 8'b0) begin
+								//Rd ← Rm << Src2
+							end
+						2'b01: //Rd ← Rm >> Src2
+						2'b10: //Rd ← Rm>>>Src2
+						2'b11:
+							case (Src2[11:7])
+								4'b0: //{Rd, C} ← {C, Rd}
+								default: //Rd ← Rn ror Src2
+							endcase
+						default: 
+					endcase
+				end
+			4'b1110: Rd <= Rn & Src2;
+			4'b1111: Rd <= Rn & Src2;
+			default:
+		endcase
+	end
 
 endmodule
