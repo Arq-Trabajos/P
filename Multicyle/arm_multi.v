@@ -70,6 +70,7 @@
 //    1110  Always                        any
 //   Writes to register 15 (PC) are ignored 
 `include "../ALU.v"
+//`include "../memfile.asm"
 
 module top (
 	clk,
@@ -624,65 +625,6 @@ module datapath (
 	output wire [31:0] WriteData;
 	input wire [31:0] ReadData;
 	output wire [31:0] Instr;
-	// Register handling
-	// if (Instr[25] == 1'b0 & Instr[7:4] == 4'b1001) begin
-
-	if (1) begin
-		regfile mulregfile(
-			.cond(Instr[31:28]),
-			.Op(Instr[27:26]),
-			.cmd(Instr[23:21]),
-			.S(Instr[20]),
-			.Rd(Intr[19:16]),
-			.Ra(Instr[15:12]),
-			.Rm(Instr[11:8]),
-			.Rn(Instr[3:0])
-		);
-	end
-	
-	else if (Instr[27:26] == 2'b00) begin
-		regfile regDataProcessing(
-			.cond(Instr[31:28]),
-			.Op(Instr[27:26]),
-			.I(Instr[25]),
-			.cmd(Instr[24:21]),
-			.S(Instr[20]),
-			.Rn(Instr[19:16]),
-			.Rd(Instr[15:12]),
-			.Src2(Instr[11:0])
-		);
-	end
-
-	else if (Instr[27:26] != 2'b00 & Instr[6:5] != 2'b00) begin
-		regfile memoryInst(
-			.cond(Instr[31:28]),
-			.Op(Instr[27:26]),
-			.Funct(Instr[25:20]),
-			.Rn(Intr[19:16]),
-			.Rd(Instr[15:12]),
-			.Src2(Instr[11:0]),
-			.Mem(WriteData),
-			.Adr(Adr)
-		);
-	end
-	else if (Instr[23:20] != 2'b00) begin
-		regfile regInstBranch(
-			.cond(Instr[31:28]),
-			.Op(Instr[27:26]),
-			.Funct(Instr[25:20]),
-			.Rn(Intr[19:16]),
-			.Rd(Instr[15:12]),
-			.Src2(Instr[11:0])
-		);
-	end
-	else if (Instr[27:26] == 2'b10) begin
-		regfile regInstBranch(
-			.cond(Instr[31:28]),
-			.Op(Instr[27:26]),
-			.funct(Instr[25:24]),
-			.immd(Instr[23:0])
-		);
-	end
 	output wire [3:0] ALUFlags;
 	input wire PCWrite;
 	input wire RegWrite;
@@ -729,8 +671,68 @@ module datapath (
 	assign Adr = (AdrSrc?Result:PC);
 
 	always @(posedge clk) begin
-		Data <= ReadData; 
-		Instr <= ReadData; 
+		Data <= 32'b11100000010011110000000000001111;
+		Instr <= 32'b11100000010011110000000000001111; 
+	end
+
+	always @(*) begin
+		if (Instr[27:26] == 2'b00 & Instr[7:4] == 4'b1001) begin
+			mulregfile mulregfile (
+				.cond(Instr[31:28]),
+				.Op(Instr[7:26]),
+				.cmd(Instr[23:21]),
+				.S(Instr[20]),
+				.Rd(Intr[19:16]),
+				.Ra(Instr[15:12]),
+				.Rm(Instr[11:8]),
+				.Rn(Instr[3:0])
+			);
+	end
+	
+	else if (Instr[27:26] == 2'b00) begin
+		regDataProcessing regDataProcessing (
+			.cond(Instr[31:28]),
+			.Op(Instr[27:26]),
+			.I(Instr[25]),
+			.cmd(Instr[24:21]),
+			.S(Instr[20]),
+			.Rn(Instr[19:16]),
+			.Rd(Instr[15:12]),
+			.Src2(Instr[11:0])
+		);
+	end
+
+	else if (Instr[27:26] != 2'b00 & Instr[6:5] != 2'b00) begin
+		memoryInst memoryInst(
+			.cond(Instr[31:28]),
+			.Op(Instr[27:26]),
+			.Funct(Instr[25:20]),
+			.Rn(Intr[19:16]),
+			.Rd(Instr[15:12]),
+			.Src2(Instr[11:0]),
+			.Mem(WriteData),
+			.Adr(Adr)
+		);
+	end
+	else if (Instr[23:20] != 2'b00) begin
+		regInstBranch regInstBranch(
+			.cond(Instr[31:28]),
+			.Op(Instr[27:26]),
+			.Funct(Instr[25:20]),
+			.Rn(Intr[19:16]),
+			.Rd(Instr[15:12]),
+			.Src2(Instr[11:0])
+		);
+	end
+	else if (Instr[27:26] == 2'b10) begin
+		regInstBranch regInstBranch(
+			.cond(Instr[31:28]),
+			.Op(Instr[27:26]),
+			.funct(Instr[25:24]),
+			.immd(Instr[23:0])
+		);
+	end
+		
 	end
 	
 	wire [31:0] rdata1, rdata2;
