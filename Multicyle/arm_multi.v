@@ -542,11 +542,13 @@ module datapath (
 			.Funct(Instr[25:20])
 			.Rn(Intr[19:16]),
 			.Rd(Instr[15:12]),
-			.Src2(Instr[11:0])
+			.Src2(Instr[11:0]),
+			.Mem(WriteData),
+			.Adr(Adr)
 		);
 	end
 	else if (Instr[23:20] != 2'b00) begin
-		regfile memoryInst(
+		regfile regInstBranch(
 			.cond(Instr[31:28]),
 			.Op(Instr[27:26]),
 			.Funct(Instr[25:20])
@@ -645,26 +647,25 @@ module mulregfile(
 	always @(*) begin
 		case (cmd)
 			3'b000: // Rd ← Rn × Rm (low 32 bits)			Multiply
-
+				Rd <= Rn & Rm;
 			3'b001: // Rd ← (Rn × Rm)+Ra (low 32 bits)		Multiply accumulate
-
+				Rd <= (Rn & Rm) | Ra
 			3'b100: // {Rd, Ra} ← Rn × Rm					Unsigned Multiply Long
 					// (all 64 bits, Rm/Rn unsigned)
-
+				{Rd, Ra} <= Rn & Rm;
 			3'b101: // {Rd, Ra} ← (Rn × Rm)+{Rd, Ra}		Unsigned Multiply accumulate Long
 					// (all 64 bits, Rm/Rn unsigned)
-
+				{Rd, Ra} <= (Rn & Rm) | {Rd, Ra};
 			3'b110: // {Rd, Ra} ← Rn × Rm					Signed Multiply Long
 					// (all 64 bits, Rm/Rn signed)
-
+				{Rd, Ra} <= Rn & Rm;
 			3'b111: // {Rd, Ra} ← (Rn × Rm)+{Rd, Ra}		Signed Multiply accumulate Long
 					// (all 64 bits, Rm/Rn signed)
-
+				{Rd, Ra} <= (Rn & Rm) | {Rd, Ra};
 			default: // invalido
+				Rd <= Rn & Rm;							  // De todas formas lo mando a Multiply
 		endcase
 	end
-	
-
 endmodule
 
 
@@ -675,14 +676,18 @@ module memoryInst(
 	Funct,
 	Rn,
 	Rd,
-	Src2
+	Src2,
+	Mem,
+	Adr
 )
 	input wire cond[3:0];
 	input wire Op[1:0];
 	input wire Funct[6:0]
+	input wire [31:0] Adr;
 	wire L;
 	output wire Rn[3:0];
 	output wire Rd[3:0];
+	output wire Mem[31:0];
 	wire Src2a[3:0];
 	wire Src2b[3:0];
 	wire op2[1:0];
@@ -698,39 +703,48 @@ module memoryInst(
 				if (Funct[2] == 1'b0) begin
 					if (L == 1'b0) begin
 						// Mem[Adr] ← Rd
+						Mem[Adr] <= Rd;
 					end
 					if (L == 1'b1) begin
 						// Rd ← Mem[Adr]
+						Rd <= Mem[Adr];
 					end
 				end
 				if (Funct[2] == 1'b1) begin
 					if (L == 1'b0) begin
 						// Mem[Adr] ← Rd7:0
+						Mem[Adr] <= Rd[7:0];
 					end
 					if (L == 1'b1) begin
 						// Rd ← Mem[Adr]7:0
+						Rd[7:0] <= Mem[Adr];
 					end
 				end
 			2'b00: 
 				if (op2 == 2'b01) begin
 						if (L == 1'b0) begin
 							// Mem[Adr] ← Rd15:0
+							Mem[Adr] <= Rd[15:0];
 						end
 						if (L == 1'b1) begin
 							// Rd ← Mem[Adr]15:0
+							Rd <= Mem[15:0];
 						end
 					end
 				if (op2 == 2'b10) begin
 					if (L == 1'b1) begin
 						// Rd ← Mem[Adr]7:0
+						Rd <= Mem[7:0];
 					end
 				end
 				if (op2 == 2'b11) begin
 					if (L == 1'b1) begin
 						// Rd ← Mem[Adr]15:0
+						Rd <= Mem[15:0];
 					end
 				end
 			default:
+				Mem[Adr] <= Rd;
 		endcase
 	end
 
@@ -755,6 +769,7 @@ module regInstBranch(
 	always @(*) begin
 		if (funct == 2'b00) begin
 			// PC ← (PC+8)+imm24 << 2
+			PC
 		end
 		if (funct != 2'b01) begin
 			// LR ← (PC+8) – 4; PC ← (PC+8)+imm24 << 2
