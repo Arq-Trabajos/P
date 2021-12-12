@@ -1,9 +1,0 @@
-# TODO LIST
-
-## ALU
-
-
-
-## FPU
-
-
