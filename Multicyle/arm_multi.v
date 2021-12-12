@@ -677,9 +677,9 @@ module datapath (
 
 	always @(*) begin
 		if (Instr[27:26] == 2'b00 & Instr[7:4] == 4'b1001) begin
-			mulregfile mulregfile (
+			mulregfile regfile(
 				.cond(Instr[31:28]),
-				.Op(Instr[7:26]),
+				.Op(Instr[27:26]),
 				.cmd(Instr[23:21]),
 				.S(Instr[20]),
 				.Rd(Intr[19:16]),
@@ -687,51 +687,41 @@ module datapath (
 				.Rm(Instr[11:8]),
 				.Rn(Instr[3:0])
 			);
-	end
-	
-	else if (Instr[27:26] == 2'b00) begin
-		regDataProcessing regDataProcessing (
-			.cond(Instr[31:28]),
-			.Op(Instr[27:26]),
-			.I(Instr[25]),
-			.cmd(Instr[24:21]),
-			.S(Instr[20]),
-			.Rn(Instr[19:16]),
-			.Rd(Instr[15:12]),
-			.Src2(Instr[11:0])
-		);
-	end
+		end
+		
+		else if (Instr[27:26] == 2'b00) begin
+			regDataProcessing regfile(
+				.cond(Instr[31:28]),
+				.Op(Instr[27:26]),
+				.I(Instr[25]),
+				.cmd(Instr[24:21]),
+				.S(Instr[20]),
+				.Rn(Instr[19:16]),
+				.Rd(Instr[15:12]),
+				.Src2(Instr[11:0])
+			);
+		end
 
-	else if (Instr[27:26] != 2'b00 & Instr[6:5] != 2'b00) begin
-		memoryInst memoryInst(
-			.cond(Instr[31:28]),
-			.Op(Instr[27:26]),
-			.Funct(Instr[25:20]),
-			.Rn(Intr[19:16]),
-			.Rd(Instr[15:12]),
-			.Src2(Instr[11:0]),
-			.Mem(WriteData),
-			.Adr(Adr)
-		);
-	end
-	else if (Instr[23:20] != 2'b00) begin
-		regInstBranch regInstBranch(
-			.cond(Instr[31:28]),
-			.Op(Instr[27:26]),
-			.Funct(Instr[25:20]),
-			.Rn(Intr[19:16]),
-			.Rd(Instr[15:12]),
-			.Src2(Instr[11:0])
-		);
-	end
-	else if (Instr[27:26] == 2'b10) begin
-		regInstBranch regInstBranch(
-			.cond(Instr[31:28]),
-			.Op(Instr[27:26]),
-			.funct(Instr[25:24]),
-			.immd(Instr[23:0])
-		);
-	end
+		else if (Instr[27:26] != 2'b00 & Instr[6:5] != 2'b00) begin
+			memoryInst regfile(
+				.cond(Instr[31:28]),
+				.Op(Instr[27:26]),
+				.Funct(Instr[25:20]),
+				.Rn(Intr[19:16]),
+				.Rd(Instr[15:12]),
+				.Src2(Instr[11:0]),
+				.Mem(WriteData),
+				.Adr(Adr)
+			);
+		end
+		else if (Instr[27:26] == 2'b10) begin
+			regInstBranch regfile(
+				.cond(Instr[31:28]),
+				.Op(Instr[27:26]),
+				.funct(Instr[25:24]),
+				.immd(Instr[23:0])
+			);
+		end
 		
 	end
 	
@@ -903,14 +893,14 @@ module mulregfile (
 	Rn,
 	Rm
 );
-	input wire cond[3:0];
-	input wire Op[1:0];
-	input wire cmd[2:0];
+	input wire [3:0]cond;
+	input wire [1:0]Op;
+	input wire [2:0]cmd;
 	input wire S;
-	output wire Rd[3:0];
-	output wire Ra[3:0];
-	output wire Rn[3:0];
-	output wire Rm[3:0];
+	output wire [3:0]Rd;
+	output wire [3:0]Ra;
+	output wire [3:0]Rn;
+	output wire [3:0]Rm;
 
 	always @(*) begin
 		case (cmd)
@@ -948,17 +938,17 @@ module memoryInst (
 	Mem,
 	Adr
 );
-	input wire cond[3:0];
-	input wire Op[1:0];
-	input wire Funct[6:0];
-	input wire Adr[31:0];
+	input wire [3:0]cond;
+	input wire [1:0]Op;
+	input wire [6:0]Funct;
+	input wire [31:0]Adr;
 	wire L;
-	output wire Rn[3:0];
-	output wire Rd[3:0];
-	output wire Mem[31:0];
-	wire Src2a[3:0];
-	wire Src2b[3:0];
-	wire op2[1:0];
+	output wire [3:0]Rn;
+	output wire [3:0]Rd;
+	output wire [31:0]Mem;
+	wire [3:0]Src2a;
+	wire [3:0]Src2b;
+	wire [1:0]op2;
 
 	assign L = Funct[0];
 	assign Src2a = Src2[11:8];
@@ -1027,7 +1017,7 @@ module regInstBranch (
 	funct,
 	immd,
 );
-	input wire cond[3:0];
+	input wire [3:0]cond;
 	input wire Op[1:0];
 	input wire funct[1:0];
 	input wire immd[23:0];
