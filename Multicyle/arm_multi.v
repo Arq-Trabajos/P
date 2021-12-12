@@ -69,6 +69,8 @@
 //    1101  Signed less/equal             N != V | Z = 1
 //    1110  Always                        any
 //   Writes to register 15 (PC) are ignored 
+`include "../ALU.v"
+
 module top (
 	clk,
 	reset,
@@ -90,6 +92,7 @@ module top (
 		.reset(reset),
 		.MemWrite(MemWrite),
 		.Adr(Adr),
+		.Instr(Instr),
 		.WriteData(WriteData),
 		.ReadData(ReadData)
 	);
@@ -126,6 +129,7 @@ module arm (
 	reset,
 	MemWrite,
 	Adr,
+	Instr,
 	WriteData,
 	ReadData
 );
@@ -135,7 +139,7 @@ module arm (
 	output wire [31:0] Adr;
 	output wire [31:0] WriteData;
 	input wire [31:0] ReadData;
-	wire [31:0] Instr;
+	input wire [31:0] Instr;
 	wire [3:0] ALUFlags;
 	wire PCWrite;
 	wire RegWrite;
@@ -620,9 +624,10 @@ module datapath (
 	output wire [31:0] WriteData;
 	input wire [31:0] ReadData;
 	output wire [31:0] Instr;
-
 	// Register handling
-	if (Instr[25] == 1'b0 & Instr[7:4] == 4'b1001) begin
+	// if (Instr[25] == 1'b0 & Instr[7:4] == 4'b1001) begin
+
+	if (1) begin
 		regfile mulregfile(
 			.cond(Instr[31:28]),
 			.Op(Instr[27:26]),
@@ -652,7 +657,7 @@ module datapath (
 		regfile memoryInst(
 			.cond(Instr[31:28]),
 			.Op(Instr[27:26]),
-			.Funct(Instr[25:20])
+			.Funct(Instr[25:20]),
 			.Rn(Intr[19:16]),
 			.Rd(Instr[15:12]),
 			.Src2(Instr[11:0]),
@@ -664,7 +669,7 @@ module datapath (
 		regfile regInstBranch(
 			.cond(Instr[31:28]),
 			.Op(Instr[27:26]),
-			.Funct(Instr[25:20])
+			.Funct(Instr[25:20]),
 			.Rn(Intr[19:16]),
 			.Rd(Instr[15:12]),
 			.Src2(Instr[11:0])
@@ -729,7 +734,7 @@ module datapath (
 	end
 	
 	wire [31:0] rdata1, rdata2;
-	register_file rfile(clk, RA1, RA2, Instr[15:12], Result, Result, RegWrite, rdata1, rdata2);
+	//register_file rfile(clk, RA1, RA2, Instr[15:12], Result, Result, RegWrite, rdata1, rdata2);
 
 	always @(posedge clk) begin
 		A <= rdata1;
@@ -886,7 +891,7 @@ module mux3 (
 endmodule
 
 // Register file para mem
-module mulregfile(
+module mulregfile (
 	cond,
 	Op,
 	cmd,
@@ -895,7 +900,7 @@ module mulregfile(
 	Ra,
 	Rn,
 	Rm
-)
+);
 	input wire cond[3:0];
 	input wire Op[1:0];
 	input wire cmd[2:0];
@@ -910,10 +915,10 @@ module mulregfile(
 			3'b000: // Rd ← Rn × Rm (low 32 bits)			Multiply
 				Rd <= Rn & Rm;
 			3'b001: // Rd ← (Rn × Rm)+Ra (low 32 bits)		Multiply accumulate
-				Rd <= (Rn & Rm) | Ra
-			3'b100: // {Rd, Ra} ← Rn × Rm					Unsigned Multiply Long
+				Rd <= (Rn & Rm) | Ra;
+			3'b100: {Rd, Ra} <= Rn & Rm;
+					// {Rd, Ra} ← Rn × Rm					Unsigned Multiply Long
 					// (all 64 bits, Rm/Rn unsigned)
-				{Rd, Ra} <= Rn & Rm;
 			3'b101: // {Rd, Ra} ← (Rn × Rm)+{Rd, Ra}		Unsigned Multiply accumulate Long
 					// (all 64 bits, Rm/Rn unsigned)
 				{Rd, Ra} <= (Rn & Rm) | {Rd, Ra};
@@ -931,7 +936,7 @@ endmodule
 
 
 // Register file para multiplicacion
-module memoryInst(
+module memoryInst (
 	cond,
 	Op,
 	Funct,
@@ -940,11 +945,11 @@ module memoryInst(
 	Src2,
 	Mem,
 	Adr
-)
+);
 	input wire cond[3:0];
 	input wire Op[1:0];
-	input wire Funct[6:0]
-	input wire [31:0] Adr;
+	input wire Funct[6:0];
+	input wire Adr[31:0];
 	wire L;
 	output wire Rn[3:0];
 	output wire Rd[3:0];
@@ -971,7 +976,7 @@ module memoryInst(
 						Rd <= Mem[Adr];
 					end
 				end
-				if (Funct[2] == 1'b1) begin
+				else if (Funct[2] == 1'b1) begin
 					if (L == 1'b0) begin
 						// Mem[Adr] ← Rd7:0
 						Mem[Adr] <= Rd[7:0];
@@ -992,13 +997,13 @@ module memoryInst(
 							Rd <= Mem[15:0];
 						end
 					end
-				if (op2 == 2'b10) begin
+				else if (op2 == 2'b10) begin
 					if (L == 1'b1) begin
 						// Rd ← Mem[Adr]7:0
 						Rd <= Mem[7:0];
 					end
 				end
-				if (op2 == 2'b11) begin
+				else if (op2 == 2'b11) begin
 					if (L == 1'b1) begin
 						// Rd ← Mem[Adr]15:0
 						Rd <= Mem[15:0];
@@ -1014,7 +1019,7 @@ endmodule
 
 // register file, branching
 
-module regInstBranch(
+module regInstBranch (
 	cond,
 	Op,
 	funct,
@@ -1030,9 +1035,8 @@ module regInstBranch(
 	always @(*) begin
 		if (funct == 2'b00) begin
 			// PC ← (PC+8)+imm24 << 2
-			PC
 		end
-		if (funct != 2'b01) begin
+		else if (funct != 2'b01) begin
 			// LR ← (PC+8) – 4; PC ← (PC+8)+imm24 << 2
 		end
 	end
@@ -1041,7 +1045,7 @@ module regInstBranch(
 endmodule
 
 // register file for data processing
-module regDataProcessing(
+module regDataProcessing (
 	cond,
 	Op,
 	I,
@@ -1088,25 +1092,10 @@ module regDataProcessing(
 				if (I == 1'b1 & Src2[11:4] == 8'b0) begin
 					
 				end
-				else if (I == 1'b0) begin
-					case (Src2[6:5])
-						2'b00: 
-							if (Src2[11:4] != 8'b0) begin
-								//Rd ← Rm << Src2
-							end
-						2'b01: //Rd ← Rm >> Src2
-						2'b10: //Rd ← Rm>>>Src2
-						2'b11:
-							case (Src2[11:7])
-								4'b0: //{Rd, C} ← {C, Rd}
-								default: //Rd ← Rn ror Src2
-							endcase
-						default: 
-					endcase
-				end
 			4'b1110: Rd <= Rn & Src2;
 			4'b1111: Rd <= Rn & Src2;
 			default:
+				Rd <= Rn & Src2;
 		endcase
 	end
 
