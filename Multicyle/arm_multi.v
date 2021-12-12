@@ -69,6 +69,7 @@
 //    1101  Signed less/equal             N != V | Z = 1
 //    1110  Always                        any
 //   Writes to register 15 (PC) are ignored 
+`timescale 1ns/1ns
 `include "../ALU.v"
 //`include "../memfile.asm"
 
@@ -1021,8 +1022,8 @@ module regInstBranch (
 	input wire Op[1:0];
 	input wire funct[1:0];
 	input wire immd[23:0];
-	wire PC[31:0]; 
-	wire LR[31:0];
+	wire [31:0]PC; 
+	wire [31:0]LR;
 
 	always @(*) begin
 		if (funct == 2'b00) begin
@@ -1047,14 +1048,14 @@ module regDataProcessing (
 	Rd,
 	Src2
 );
-	input wire cond[3:0];
-	input wire Op[1:0];
+	input wire [3:0]cond;
+	input wire [1:0]Op;
 	input wire I;
-	input wire cmd[2:0];
-	input wire Src2[11:0];
+	input wire [2:0]cmd;
+	input wire [11:0]Src2;
 	input S;
-	output wire Rn[3:0];
-	output wire Rd[3:0];
+	output wire [3:0]Rn;
+	output wire [3:0]Rd;
 
 	always @(*) begin
 		case (cmd)
