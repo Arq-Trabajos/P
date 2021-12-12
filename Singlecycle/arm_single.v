@@ -608,7 +608,7 @@ module mux2 (
 endmodule
 
 // Register file para mem
-module mulregfile(
+module mulregfile (
 	cond,
 	Op,
 	cmd,
@@ -617,7 +617,7 @@ module mulregfile(
 	Ra,
 	Rn,
 	Rm
-)
+);
 	input wire cond[3:0];
 	input wire Op[1:0];
 	input wire cmd[2:0];
@@ -653,7 +653,7 @@ endmodule
 
 
 // Register file para multiplicacion
-module memoryInst(
+module memoryInst (
 	cond,
 	Op,
 	Funct,
@@ -662,7 +662,7 @@ module memoryInst(
 	Src2,
 	Mem,
 	Adr
-)
+);
 	input wire cond[3:0];
 	input wire Op[1:0];
 	input wire Funct[6:0]
@@ -730,13 +730,10 @@ module memoryInst(
 				Mem[Adr] <= Rd;
 		endcase
 	end
-
-
 endmodule
-
 // register file, branching
 
-module regInstBranch(
+module regInstBranch (
 	cond,
 	Op,
 	funct,
@@ -763,7 +760,7 @@ module regInstBranch(
 endmodule
 
 // register file for data processing
-module regDataProcessing(
+module regDataProcessing (
 	cond,
 	Op,
 	I,
