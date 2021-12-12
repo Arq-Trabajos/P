@@ -13,11 +13,12 @@ module alu_tb;
     initial begin
 
         ALUControl = 3'b110;
-        A = -45;
-        B = 23;
+
+        A = -2;
+        B = 3;
 
         #1;
-        $display("%b %d %d %b %d %d",ALUControl, A, B, ALUFlags, Result, ResultExtra);
+        $display("%x %x %x %x %x %x",ALUControl, A, B, ALUFlags, Result, ResultExtra);
 
 
     end
