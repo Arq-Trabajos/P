@@ -53,6 +53,7 @@ module FPU(
                 expA = A[14:10];
                 expB = B[14:10];
 
+                //ADICION
                 if(expA>expB) begin
                     expDif = expA-expB;
                     expFinADD = expA;
