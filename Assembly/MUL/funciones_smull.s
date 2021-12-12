@@ -4,7 +4,7 @@
 MULTIPLICACIONSIGNOTEST:
     MOV R1, #0x110
     MOV R2, #0x010
-    Bl MULTIPLICACIONSIGNO
+    BL MULTIPLICACIONSIGNO
 
 ;Result R4, R5 -> el número final es [R5, R4] en 64 bits
 
