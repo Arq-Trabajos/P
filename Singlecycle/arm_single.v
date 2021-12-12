@@ -477,6 +477,7 @@ module datapath (
 		ALUFlags
 	);
 endmodule
+
 module regfile (
 	clk,
 	we3,
@@ -504,6 +505,7 @@ module regfile (
 	assign rd1 = (ra1 == 4'b1111 ? r15 : rf[ra1]);
 	assign rd2 = (ra2 == 4'b1111 ? r15 : rf[ra2]);
 endmodule
+
 module extend (
 	Instr,
 	ImmSrc,
@@ -520,6 +522,7 @@ module extend (
 			default: ExtImm = 32'bxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx;
 		endcase
 endmodule
+
 module adder (
 	a,
 	b,
@@ -531,6 +534,7 @@ module adder (
 	output wire [WIDTH - 1:0] y;
 	assign y = a + b;
 endmodule
+
 module flopenr (
 	clk,
 	reset,
@@ -550,6 +554,7 @@ module flopenr (
 		else if (en)
 			q <= d;
 endmodule
+
 module flopr (
 	clk,
 	reset,
@@ -567,6 +572,7 @@ module flopr (
 		else
 			q <= d;
 endmodule
+
 module mux2 (
 	d0,
 	d1,

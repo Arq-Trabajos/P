@@ -330,6 +330,33 @@ module decode (
 	// ImmSrc and RegSrc. We've completed the ImmSrc logic for you.
 
 	// Instr Decoder
+	// ALU Decoder 
+	always @(*) begin
+		if (ALUOp) begin
+			case (Funct[4:1])
+				4'b0100: ALUControl = 2'b00;
+				4'b0010: ALUControl = 2'b01;
+				4'b0000: ALUControl = 2'b10;
+				4'b1100: ALUControl = 2'b11;
+				default: ALUControl = 2'bxx;
+			endcase
+			FlagW[1] <= Funct[0];
+			FlagW[0] <= Funct[0] & ((ALUControl == 2'b00) | (ALUControl == 2'b01));
+		end 
+		else begin
+			ALUControl = 2'b00;
+			FlagW = 2'b00;
+		end
+	end
+	// PC Controller
+	assign PCS = ((Rd == 4'b1111) & RegW) | Branch;
+
+	// Instr Decoder
+	assign ImmSrc = Op;
+
+	// RegSrc Decoder
+	assign RegSrc[0] = (Op == 2'b01);
+	assign RegSrc[1] = (Op == 2'b10);
 	assign ImmSrc = Op;
 endmodule
 
@@ -401,10 +428,14 @@ module mainfsm (
 					2'b10: nextstate = BRANCH;
 					default: nextstate = UNKNOWN;
 				endcase
-			EXECUTER:
-			EXECUTEI:
+			EXECUTER: nextstate = ALUWB;
+			EXECUTEI: nextstate = ALUWB;
 			MEMADR:
-			MEMRD:
+				case (Funct[0])
+					1'b1: nextstate = MEMRD;
+					1'b0: nextstate = MEMWR;
+				endcase
+			MEMRD: nextstate = MEMWB;
 			default: nextstate = FETCH;
 		endcase
 
@@ -417,18 +448,20 @@ module mainfsm (
 		case (state)
 			FETCH: controls = 13'b1000101001100;
 			DECODE: controls = 13'b0000001001100;
-			EXECUTER: 
-			EXECUTEI: 
-			ALUWB: 
-			MEMADR: 
-			MEMWR: 
-			MEMRD: 
-			MEMWB: 
-			BRANCH: 
+			EXECUTER: controls = 13'b0000000000001;
+            EXECUTEI: controls = 13'b0000000000011;
+            ALUWB: controls = 13'b0001000000000;
+            MEMADR: controls = 13'b0000000000010;
+            MEMWR: controls = 13'b0010010000000;
+            MEMRD: controls = 13'b0000010000000;
+            MEMWB: controls = 13'b0001000100000;
+            BRANCH: controls = 13'b0100001000010;
 			default: controls = 13'bxxxxxxxxxxxxx;
 		endcase
 	assign {NextPC, Branch, MemW, RegW, IRWrite, AdrSrc, ResultSrc, ALUSrcA, ALUSrcB, ALUOp} = controls;
 endmodule
+
+// el esta haciendo ya multiplicadores y lo de fp add
 
 // ADD CODE BELOW
 // Add code for the condlogic and condcheck modules. Remember, you may
@@ -473,6 +506,47 @@ module condlogic (
 
 	// ADD CODE HERE
 
+	condcheck cc(
+		.Cond(Cond),
+		.Flags(Flags),
+		.CondEx(CondEx)
+	);
+	
+	// condcheck cc(
+	// 	.Cond(Cond),
+	// 	.Flags(Flags),
+	// 	.CondEx(CondEx)
+	// );
+	// always @(posedge clk, negedge reset) begin
+	// 	if (reset) begin
+	// 		Flags[3:0] <= 4'b0000;
+	// 	end
+	// 	else begin
+	// 		if (FlagWrite[1]) begin
+	// 			Flags[3:2] <= ALUFlags[3:2];
+	// 		end
+	// 		if (FlagWrite[0]) begin
+	// 			Flags[1:0] <= ALUFlags[1:0];
+	// 		end
+	// 	end
+	// end
+		
+	// always @(posedge clk, negedge reset) begin
+	// 	if (reset) begin
+	// 		CondEx <= 0;
+	// 	end
+	// 	else begin
+	// 		CondEx <= CondEx;
+	// 	end
+	// end
+
+	// assign FlagWrite = (CondEx) ? FlagW : 2'b00;
+	// always begin
+	// 	assign RegWrite = RegW & CondEx;
+	// 	assign MemWrite = MemW & CondEx;
+	// end
+	// assign PCWrite = NextPC || (PCWrite && CondEx);
+
 endmodule
 
 module condcheck (
@@ -482,9 +556,34 @@ module condcheck (
 );
 	input wire [3:0] Cond;
 	input wire [3:0] Flags;
-	output wire CondEx;
+	output reg CondEx;
+	wire neg;
+	wire zero;
+	wire carry;
+	wire overflow;
+	wire ge;
 
-	// ADD CODE HERE
+	assign {neg, zero, carry, overflow} = Flags;
+	assign ge = neg == overflow;
+	always @(*)
+		case (Cond)
+			4'b0000: CondEx = zero;
+			4'b0001: CondEx = ~zero;
+			4'b0010: CondEx = carry;
+			4'b0011: CondEx = ~carry;
+			4'b0100: CondEx = neg;
+			4'b0101: CondEx = ~neg;
+			4'b0110: CondEx = overflow;
+			4'b0111: CondEx = ~overflow;
+			4'b1000: CondEx = carry & ~zero;
+			4'b1001: CondEx = ~(carry & ~zero);
+			4'b1010: CondEx = ge;
+			4'b1011: CondEx = ~ge;
+			4'b1100: CondEx = ~zero & ge;
+			4'b1101: CondEx = ~(~zero & ge);
+			4'b1110: CondEx = 1'b1;
+			default: CondEx = 1'bx;
+		endcase
 endmodule
 
 // ADD CODE BELOW
@@ -600,13 +699,153 @@ module datapath (
 	// ADD CODE HERE
 	// Falta añadir el código para el datapath
 
+	
+	always @(posedge clk) begin
+		if(PCWrite) begin 
+			PC <= Result;
+		end
+	end
+
+	assign Adr = (AdrSrc?Result:PC);
+
+	always @(posedge clk) begin
+		Data <= ReadData; 
+		Instr <= ReadData; 
+	end
+	
+	wire [31:0] rdata1, rdata2;
+	register_file rfile(clk, RA1, RA2, Instr[15:12], Result, Result, RegWrite, rdata1, rdata2);
+
+	always @(posedge clk) begin
+		A <= rdata1;
+		WriteData <= rdata2;
+	end
+
+	assign SrcA = (ALUSrcA?PC:A);
+	
+	extend ext(Instr[23:0], ImmSrc, ExtImm);
+
+	mux3 alusrcb(WriteData, ExtImm, 4, ALUSrcB, SrcB);
+
+	alu alu_dp(SrcA ,SrcB, ALUControl ,ALUResult, ALUFlags);
+
+	always @(posedge clk) begin
+		ALUOut <= ALUResult;
+	end
+
+	mux3 muxresult(ALUOut, Data, ALUResult, ResultSrc, Result);
+
 endmodule
 
-// ADD CODE BELOW
-// Add needed building blocks below (i.e., parameterizable muxes, 
-// registers, etc.). Remember, you can reuse code from previous labs.
-// We've also provided a parameterizable 3:1 mux below for your 
-// convenience.
+
+module register_file(
+	input wire clk,
+	input wire [3:0] A1, input wire [3:0] A2, input wire [3:0] A3,
+	input wire [31:0] WD3, input wire [31:0] R15, input wire WE3,
+	output wire [31:0] RD1, output wire [31:0] RD2
+);
+	reg [31:0] registros [14:0];
+	integer i;
+	initial begin
+		for( i= 0; i<15; i++) begin
+		  registros[i] = 32'b0;
+		end
+	end
+
+	assign RD1 = registros[A1];
+	assign RD2 = registros[A2];
+
+	always @(posedge clk) begin
+		if (WE3) begin
+			registros[A3] <= WD3;
+		end
+	end
+
+endmodule
+
+
+module extend (
+	input wire [23:0] Instr,
+	input wire [1:0] ImmSrc,
+	output reg [31:0] ExtImm
+);
+	always @(*) begin
+		case (ImmSrc)
+			2'b00: ExtImm = {24'b000000000000000000000000, Instr[7:0]};
+			2'b01: ExtImm = {20'b00000000000000000000, Instr[11:0]};
+			2'b10: ExtImm = {{6 {Instr[23]}}, Instr[23:0], 2'b00};
+			default: ExtImm = 32'bxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx;
+		endcase
+	end
+endmodule
+
+module adder (
+	a,
+	b,
+	y
+);
+	parameter WIDTH = 8;
+	input wire [WIDTH - 1:0] a;
+	input wire [WIDTH - 1:0] b;
+	output wire [WIDTH - 1:0] y;
+	assign y = a + b;
+endmodule
+
+
+module flopenr (
+	clk,
+	reset,
+	en,
+	d,
+	q
+);
+	parameter WIDTH = 8;
+	input wire clk;
+	input wire reset;
+	input wire en;
+	input wire [WIDTH - 1:0] d;
+	output reg [WIDTH - 1:0] q;
+	always @(posedge clk or posedge reset) begin
+		if (reset)
+			q <= 0;
+		else if (en)
+			q <= d;
+	end
+endmodule
+
+
+module flopr (
+	clk,
+	reset,
+	d,
+	q
+);
+	parameter WIDTH = 8;
+	input wire clk;
+	input wire reset;
+	input wire [WIDTH - 1:0] d;
+	output reg [WIDTH - 1:0] q;
+	always @(posedge clk or posedge reset) begin
+		if (reset)
+			q <= 0;
+		else
+			q <= d;
+	end
+endmodule
+
+module mux2 (
+	d0,
+	d1,
+	s,
+	y
+);
+	parameter WIDTH = 8;
+	input wire [WIDTH - 1:0] d0;
+	input wire [WIDTH - 1:0] d1;
+	input wire s;
+	output wire [WIDTH - 1:0] y;
+	assign y = (s ? d1 : d0);
+endmodule
 
 module mux3 (
 	d0,
