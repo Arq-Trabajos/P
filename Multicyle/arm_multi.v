@@ -676,10 +676,10 @@ module datapath (
 	end
 
 	always @(*) begin
-		if (Instr[27:26] == 2'b00 & Instr[7:4] == 4'b1001) begin
+		if (Instr[27:26] == 2'b00 && Instr[7:4] == 4'b1001) begin
 			mulregfile mulregfile (
 				.cond(Instr[31:28]),
-				.Op(Instr[7:26]),
+				.Op(Instr[27:26]),
 				.cmd(Instr[23:21]),
 				.S(Instr[20]),
 				.Rd(Intr[19:16]),
@@ -687,51 +687,52 @@ module datapath (
 				.Rm(Instr[11:8]),
 				.Rn(Instr[3:0])
 			);
-	end
+		end
+	// end
 	
-	else if (Instr[27:26] == 2'b00) begin
-		regDataProcessing regDataProcessing (
-			.cond(Instr[31:28]),
-			.Op(Instr[27:26]),
-			.I(Instr[25]),
-			.cmd(Instr[24:21]),
-			.S(Instr[20]),
-			.Rn(Instr[19:16]),
-			.Rd(Instr[15:12]),
-			.Src2(Instr[11:0])
-		);
-	end
+	// else if (Instr[27:26] == 2'b00) begin
+	// 	regDataProcessing regDataProcessing (
+	// 		.cond(Instr[31:28]),
+	// 		.Op(Instr[27:26]),
+	// 		.I(Instr[25]),
+	// 		.cmd(Instr[24:21]),
+	// 		.S(Instr[20]),
+	// 		.Rn(Instr[19:16]),
+	// 		.Rd(Instr[15:12]),
+	// 		.Src2(Instr[11:0])
+	// 	);
+	// end
 
-	else if (Instr[27:26] != 2'b00 & Instr[6:5] != 2'b00) begin
-		memoryInst memoryInst(
-			.cond(Instr[31:28]),
-			.Op(Instr[27:26]),
-			.Funct(Instr[25:20]),
-			.Rn(Intr[19:16]),
-			.Rd(Instr[15:12]),
-			.Src2(Instr[11:0]),
-			.Mem(WriteData),
-			.Adr(Adr)
-		);
-	end
-	else if (Instr[23:20] != 2'b00) begin
-		regInstBranch regInstBranch(
-			.cond(Instr[31:28]),
-			.Op(Instr[27:26]),
-			.Funct(Instr[25:20]),
-			.Rn(Intr[19:16]),
-			.Rd(Instr[15:12]),
-			.Src2(Instr[11:0])
-		);
-	end
-	else if (Instr[27:26] == 2'b10) begin
-		regInstBranch regInstBranch(
-			.cond(Instr[31:28]),
-			.Op(Instr[27:26]),
-			.funct(Instr[25:24]),
-			.immd(Instr[23:0])
-		);
-	end
+	// else if (Instr[27:26] != 2'b00 & Instr[6:5] != 2'b00) begin
+	// 	memoryInst memoryInst(
+	// 		.cond(Instr[31:28]),
+	// 		.Op(Instr[27:26]),
+	// 		.Funct(Instr[25:20]),
+	// 		.Rn(Intr[19:16]),
+	// 		.Rd(Instr[15:12]),
+	// 		.Src2(Instr[11:0]),
+	// 		.Mem(WriteData),
+	// 		.Adr(Adr)
+	// 	);
+	// end
+	// else if (Instr[23:20] != 2'b00) begin
+	// 	regInstBranch regInstBranch(
+	// 		.cond(Instr[31:28]),
+	// 		.Op(Instr[27:26]),
+	// 		.Funct(Instr[25:20]),
+	// 		.Rn(Intr[19:16]),
+	// 		.Rd(Instr[15:12]),
+	// 		.Src2(Instr[11:0])
+	// 	);
+	// end
+	// else if (Instr[27:26] == 2'b10) begin
+	// 	regInstBranch regInstBranch(
+	// 		.cond(Instr[31:28]),
+	// 		.Op(Instr[27:26]),
+	// 		.funct(Instr[25:24]),
+	// 		.immd(Instr[23:0])
+	// 	);
+	// end
 		
 	end
 	
