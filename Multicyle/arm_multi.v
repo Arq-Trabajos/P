@@ -555,6 +555,14 @@ module datapath (
 			.Src2(Instr[11:0])
 		);
 	end
+	else if (Instr[27:26] == 2'b10) begin
+		regfile regInstBranch(
+			.cond(Instr[31:28]),
+			.Op(Instr[27:26]),
+			.funct(Instr[25:24]),
+			.immd(Instr[23:0])
+		);
+	end
 	output wire [3:0] ALUFlags;
 	input wire PCWrite;
 	input wire RegWrite;
@@ -633,6 +641,28 @@ module mulregfile(
 	output wire Ra[3:0];
 	output wire Rn[3:0];
 	output wire Rm[3:0];
+
+	always @(*) begin
+		case (cmd)
+			3'b000: // Rd ← Rn × Rm (low 32 bits)			Multiply
+
+			3'b001: // Rd ← (Rn × Rm)+Ra (low 32 bits)		Multiply accumulate
+
+			3'b100: // {Rd, Ra} ← Rn × Rm					Unsigned Multiply Long
+					// (all 64 bits, Rm/Rn unsigned)
+
+			3'b101: // {Rd, Ra} ← (Rn × Rm)+{Rd, Ra}		Unsigned Multiply accumulate Long
+					// (all 64 bits, Rm/Rn unsigned)
+
+			3'b110: // {Rd, Ra} ← Rn × Rm					Signed Multiply Long
+					// (all 64 bits, Rm/Rn signed)
+
+			3'b111: // {Rd, Ra} ← (Rn × Rm)+{Rd, Ra}		Signed Multiply accumulate Long
+					// (all 64 bits, Rm/Rn signed)
+
+			default: // invalido
+		endcase
+	end
 	
 
 endmodule
@@ -649,25 +679,87 @@ module memoryInst(
 )
 	input wire cond[3:0];
 	input wire Op[1:0];
+	input wire Funct[6:0]
+	wire L;
+	output wire Rn[3:0];
+	output wire Rd[3:0];
+	wire Src2a[3:0];
+	wire Src2b[3:0];
+	wire op2[1:0];
+
+	assign L = Funct[0];
+	assign Src2a = Src2[11:8];
+	assign Src2b = Src2[3:0];
+	assign op2 = Src2[6:5];
+
+	always @(*) begin
+		case(Op)
+			2'b01:
+				if (Funct[2] == 1'b0) begin
+					if (L == 1'b0) begin
+						// Mem[Adr] ← Rd
+					end
+					if (L == 1'b1) begin
+						// Rd ← Mem[Adr]
+					end
+				end
+				if (Funct[2] == 1'b1) begin
+					if (L == 1'b0) begin
+						// Mem[Adr] ← Rd7:0
+					end
+					if (L == 1'b1) begin
+						// Rd ← Mem[Adr]7:0
+					end
+				end
+			2'b00: 
+				if (op2 == 2'b01) begin
+						if (L == 1'b0) begin
+							// Mem[Adr] ← Rd15:0
+						end
+						if (L == 1'b1) begin
+							// Rd ← Mem[Adr]15:0
+						end
+					end
+				if (op2 == 2'b10) begin
+					if (L == 1'b1) begin
+						// Rd ← Mem[Adr]7:0
+					end
+				end
+				if (op2 == 2'b11) begin
+					if (L == 1'b1) begin
+						// Rd ← Mem[Adr]15:0
+					end
+				end
+			default:
+		endcase
+	end
 
 
 endmodule
 
-// Data-processing instructions
-//   ADD, SUB, AND, ORR
-//   INSTR <cond> <S> <Rd>, <Rn>, #immediate
-//   INSTR <cond> <S> <Rd>, <Rn>, <Rm>
-//    Rd <- <Rn> INSTR <Rm>	    	if (S) Update Status Flags
-//    Rd <- <Rn> INSTR immediate	if (S) Update Status Flags
-//   Instr[31:28] = cond
-//   Instr[27:26] = Op = 00
-//   Instr[25:20] = Funct
-//                  [25]:    1 for immediate, 0 for register
-//                  [24:21]: 0100 (ADD) / 0010 (SUB) /
-//                           0000 (AND) / 1100 (ORR)
-//                  [20]:    S (1 = update CPSR status Flags)
-//   Instr[19:16] = Rn
-//   Instr[15:12] = Rd
-//   Instr[11:8]  = 0000
-//   Instr[7:0]   = immed_8  (for #immediate type) / 
-//                  0000<Rm> (for register type)
+// register file, branching
+
+module regInstBranch(
+	cond,
+	Op,
+	funct,
+	immd,
+);
+	input reg cond[3:0];
+	input reg Op[1:0];
+	input reg funct[1:0];
+	input reg immd[23:0];
+	reg PC[31:0]; 
+	reg LR[31:0];
+
+	always @(*) begin
+		if (funct == 2'b00) begin
+			// PC ← (PC+8)+imm24 << 2
+		end
+		if (funct != 2'b01) begin
+			// LR ← (PC+8) – 4; PC ← (PC+8)+imm24 << 2
+		end
+	end
+
+
+endmodule
