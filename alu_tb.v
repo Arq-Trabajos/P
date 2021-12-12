@@ -11,16 +11,11 @@ module alu_tb;
     alu ALUtest(ALUControl, A, B, ALUFlags, Result, ResultExtra);
 
     initial begin
-
         ALUControl = 3'b110;
-
         A = -2;
         B = 3;
-
         #1;
         $display("%x %x %x %x %x %x",ALUControl, A, B, ALUFlags, Result, ResultExtra);
-
-
     end
 
 endmodule
