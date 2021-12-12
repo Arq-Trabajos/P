@@ -625,7 +625,9 @@ module datapath (
 	input wire [31:0] ReadData;
 	output wire [31:0] Instr;
 	// Register handling
-	if (Instr[25] == 1'b0 & Instr[7:4] == 4'b1001) begin
+	// if (Instr[25] == 1'b0 & Instr[7:4] == 4'b1001) begin
+
+	if (1) begin
 		regfile mulregfile(
 			.cond(Instr[31:28]),
 			.Op(Instr[27:26]),
