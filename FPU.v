@@ -23,6 +23,9 @@ module FPU(
     output [3:0] ALUFlags, output reg [31:0] Result
 );
 
+    // FPUCONtrol: ADD O MUL
+    // FloatTYPE: 16 o 32
+
     reg [31:0] mantA, mantB;
     reg [31:0] expA, expB;
     //ADD
