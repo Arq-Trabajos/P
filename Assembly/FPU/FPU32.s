@@ -1,15 +1,16 @@
+; R4, R5 son mantizas de a y b. R6 y R7 son exponentes de a y b
 FLPADD
-  PUSH {R4, R5, R6, R7, R8}   
-  LDR R2, #0x007FFFFF     
-  LDR R3, #0X7F800000      
-  AND R4, R0, R2        
-  AND R5, R1, R2        
-  ORR R4, R4, #0X80000000    
-  ORR R5, R5, #0X80000000
-  AND R6, R0, R3
-  LSR R6, R6, #23
-  AND R7, R1, R3
-  LSR R7, R7, #23
+  PUSH {R4, R5, R6, R7, R8}         ; colocamos en el stack los registros que utilizaremos en la funcion
+  LDR R2, #0x007FFFFF               ; cargamos la máscara de la mantisa
+  LDR R3, #0X7F800000               ; cargamos la máscara de exponente
+  AND R4, R0, R2                    ; extraemos la mantisa del R0
+  AND R5, R1, R2                    ; extraemos la mantisa del R1
+  ORR R4, R4, #0X80000000           ; insertamos ...
+  ORR R5, R5, #0X80000000           ; insertamos ...
+  AND R6, R0, R3                    ; extraemos el exponente del R0
+  LSR R6, R6, #23                   ; realizamos shift al exponente hacia la derecha
+  AND R7, R1, R3                    ; extraemos el exponente del R1
+  LSR R7, R7, #23                   ; realizamos shift al exponente hacia la derecha
 
 MATCH
   CMP R6,R7
