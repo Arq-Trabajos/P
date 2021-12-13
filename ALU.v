@@ -23,7 +23,7 @@ module alu (
 			3'b011: {ResultExtra, Result} = {32'b0, A | B}; // ALUControl signal 01 means OR
             //MUL: 100
             //SMULL: 110
-            //UMULL: 111 voy a hacer push y cortar el live share 
+            //UMULL: 111
             3'b1??: {ResultExtra, Result} = Product;
 		endcase
 	end

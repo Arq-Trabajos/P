@@ -11,11 +11,25 @@ module alu_tb;
     alu ALUtest(ALUControl, A, B, ALUFlags, Result, ResultExtra);
 
     initial begin
-        ALUControl = 3'b110;
+        ALUControl = 3'b100;
         A = -2;
         B = 3;
         #1;
-        $display("%x %x %x %x %x %x",ALUControl, A, B, ALUFlags, Result, ResultExtra);
+        $display("MUL(%b): %x x %x = (lower 32) %x (possible overflow) %x; Flags: %b",ALUControl, A, B, Result, ResultExtra, ALUFlags);
+
+        ALUControl = 3'b110;
+        A = -5;
+        B = 10;
+        #1;
+        $display("SMULL(%b): %x x %x = (lower 32) %x (higher 32) %x; Flags: %b",ALUControl, A, B, Result, ResultExtra, ALUFlags);
+
+
+        ALUControl = 3'b111;
+        A = 10;
+        B = 45;
+        #1;
+        $display("UMULL(%b): %x x %x = (lower 32) %x (higher 32) %x; Flags: %b",ALUControl, A, B, Result, ResultExtra, ALUFlags);
+
     end
 
 endmodule

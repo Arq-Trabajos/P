@@ -1,57 +1,6 @@
-module fpu_tb;
-
-reg fpucontrol, floatType;
-reg [31:0] A, B;
-wire [3:0] fpuFlags;
-wire [31:0] Result;
-
-FPU test(fpucontrol, A, B, floatType,  fpuFlags, Result);
-
-initial begin
-
-    //16 bits test
-    floatType = 1'b0;
-
-    //Adicion
-    B = 32'h00003555; //0.33325195
-    A = 32'h00003bff; //0.99951172
-    fpucontrol = 0;
-
-    #1;
-    $display("%x + %x = %x", A, B, Result);
-
-    //multiplicacion
-    B = 32'h00005664; //102.25
-    A = 32'h0000d482; //-72.1
-    fpucontrol = 1;
-    
-    #1;
-    $display("%x x %x = %x", A, B, Result);
-
-    // 32 bits test
-    floatType = 1'b1;
-
-    //Adicion
-    B = 32'h418c0000; //17.5
-    A = 32'hc059999a; //89.234
-    fpucontrol = 0;
-
-    #1;
-    $display("%x + %x = %x", A, B, Result);
-    //Multiplicacion 
-    B = 32'h418c0000; //17.5
-    A = 32'hc059999a; //-3.4
-    fpucontrol = 1;
-    
-    #1;
-    $display("%x x %x = %x", A, B, Result);
-end
-
-endmodule
-
 module FPU(
     input FPUControl, input [31:0] A, B, input floatType,
-    output [3:0] ALUFlags, output reg [31:0] Result
+    output [3:0] FPUFlags, output reg [31:0] Result
 );
 
     // FPUCONtrol: ADD O MUL
@@ -122,7 +71,7 @@ module FPU(
                 end
 
 
-                Prod = {A[31]^B[31], expFinPROD[4:0], mantFinPROD[62:53]};
+                Prod = {A[15]^B[15], expFinPROD[4:0], mantFinPROD[62:53]};
 
             end
             1'b1: begin
@@ -178,6 +127,12 @@ module FPU(
         Result = ~FPUControl?Sum:Prod;
     end
 
-    
+    wire Negative, Overflow, Carry, Zero;
+    assign Zero = floatType?32'b0==Result: 16'b0==Result[15:0];
+    assign Negative = floatType?Result[31]:Result[15];
+    assign Overflow = floatType?Result==32'hffffffff|Result==32'h7fffffff:Result[15:0]==16'hffff|Result[15:0]==316'h7fff;
+    assign Carry = 0;
+
+    assign FPUFlags = {Negative, Zero, Carry, Overflow};
 
 endmodule
