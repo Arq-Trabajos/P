@@ -174,6 +174,7 @@ module decode (
 	output wire [1:0] ImmSrc,
 	output wire [1:0] RegSrc,
 	output reg [2:0] ALUControl
+	output 
 );
 
 	reg [9:0] controls;
