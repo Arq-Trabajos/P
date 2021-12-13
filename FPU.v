@@ -28,12 +28,13 @@ module FPU(
     // 1: Single
         case(floatType)
             1'b0: begin
+                //FILTRAMOS MANTISAS Y EXPONENTES
                 mantA = {1'b1,A[9:0]};
                 mantB = {1'b1,B[9:0]};
                 expA = A[14:10];
                 expB = B[14:10];
 
-                //ADICION
+                //ALGORITMO DE ADICION
                 if(expA>expB) begin
                     expDif = expA-expB;
                     expFinADD = expA;
@@ -58,7 +59,7 @@ module FPU(
 
                 Sum = {expFinADD[4:0], mantFinADD[9:0]};
 
-                // PRODUCTOS
+                // ALGORITMO DE MULTIPLICACION
                 if(A==0 | B==0) begin
                     Prod = 32'b0;
                 end else begin
@@ -81,7 +82,7 @@ module FPU(
                 expA = A[30:23];
                 expB = B[30:23];
 
-                // ADICION
+                // ALGORITMO DE ADICION
                 if(expA>expB) begin
                     expDif = expA-expB;
                     expFinADD = expA;
@@ -106,7 +107,7 @@ module FPU(
 
                 Sum = {expFinADD[7:0], mantFinADD[22:0]};
 
-                // PRODUCTOS
+                // ALGORITMO DE MULTIPLICACION
                 if(A==0 | B==0) begin
                     Prod = 32'b0;
                 end else begin
@@ -124,14 +125,16 @@ module FPU(
         endcase
 
 
-        Result = ~FPUControl?Sum:Prod;
+        Result = ~FPUControl?Sum:Prod; // dEPENDIENDO DE LAS DOS OPERACIONES, LA SALIDA DEL FPU TENDRÁ LA OPERACIÓN DE SUMA O PRODUCTO
     end
 
-    wire Negative, Overflow, Carry, Zero;
-    assign Zero = floatType?32'b0==Result: 16'b0==Result[15:0];
-    assign Negative = floatType?Result[31]:Result[15];
-    assign Overflow = floatType?Result==32'hffffffff|Result==32'h7fffffff:Result[15:0]==16'hffff|Result[15:0]==316'h7fff;
+    wire Negative, Overflow, Carry, Zero; 
+    assign Zero = floatType?32'b0==Result: 16'b0==Result[15:0]; // 000...000 DEFINE EL NUMERO 0 
+    assign Negative = floatType?Result[31]:Result[15]; // LA NEGATIVIDAD SE DEFINE POR EL PRIMER BIT
+    assign Overflow = floatType?Result==32'hffffffff|Result==32'h7fffffff:Result[15:0]==16'hffff|Result[15:0]==316'h7fff; 
+    // LOS ÚNICOS VALORES QUE LA NOTACIÓN DE COMA FLOTANTE NO RECONOCE YA QUE SOBREPASAN SU CANTIDAD DE VALORES SON: 1111...1111 Y 01111.1111
     assign Carry = 0;
+    // EN LA NOTACIÓN COMA FLOTANTE NO SE PRESENTA CARR
 
     assign FPUFlags = {Negative, Zero, Carry, Overflow};
 

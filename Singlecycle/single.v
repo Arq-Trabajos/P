@@ -493,12 +493,12 @@ module datapath (
 		.B(SrcB),
 		.floatType(Instr[9]),
 		.FPUControl(Instr[7]),
-		.FPUFlags(FPUFlags)
+		.FPUFlags(FPUFlags),
 		.Result(FPUResult)
 	);
 
-	assign ALUFlags = Instr[7:5]==3'b111?FPUFlags: ALUFlags1;
-	assign ALUResult = Instr[7:5]==3'b111?FPUResult: ALUResult1;
+	assign ALUFlags = (Instr[7:5]==3'b111)?FPUFlags: ALUFlags1;
+	assign ALUResult = (Instr[7:5]==3'b111)?FPUResult: ALUResult1;
 	
 	
 endmodule

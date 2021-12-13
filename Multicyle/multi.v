@@ -1,5 +1,5 @@
 `include "ALU.v"
-module top (
+module top ( // instanciando todas las variables de memory y el arm
     clk,
     reset,
     WriteData,
@@ -56,11 +56,12 @@ module arm (
     wire [1:0] ImmSrc;
     wire [2:0] ALUControl;
     wire [1:0] ResultSrc;
-    wire Src_64b;
+    
+    wire SrcExtra;
     wire FPUWrite;
-    wire RegSrc64b;
+    wire RegSrcExtra;
 
-    controller c(
+    controller c( // module de control unit dentro de nuestro procesador
         .clk(clk),
         .reset(reset),
         .Instr(Instr),
@@ -76,12 +77,12 @@ module arm (
         .ResultSrc(ResultSrc),
         .ImmSrc(ImmSrc),
         .ALUControl(ALUControl),
-        .Src_64b(Src_64b),
+        .SrcExtra(SrcExtra),
         .FPUWrite(FPUWrite),
-        .RegSrc64b(RegSrc64b)
+        .RegSrcExtra(RegSrcExtra)
     );
 
-    datapath dp(
+    datapath dp( // module de datapath de nuestro procesador, esto subsecuente mente se divide a mas submodulos de filtro de infromacion
         .clk(clk),
         .reset(reset),
         .Adr(Adr),
@@ -99,17 +100,18 @@ module arm (
         .ResultSrc(ResultSrc),
         .ImmSrc(ImmSrc),
         .ALUControl(ALUControl),
-        .Src_64b(Src_64b),
+        .SrcExtra(SrcExtra),
         .FPUWrite(FPUWrite),
-        .RegSrc64b(RegSrc64b)
+        .RegSrcExtra(RegSrcExtra)
     );
 endmodule
-module condcheck (
+
+module condcheck ( // este modulo se puede llamar para prender los flags de negative zero, carry  y overflow estan prendidas
     Cond,
     Flags,
     CondEx
 );
-    input wire [3:0] Cond;
+    input wire [3:0] Cond; // cond nos permite saber cual de los flags se va a prender y pasamos a condex los resultados
     input wire [3:0] Flags;
     output reg CondEx;
     wire neg;
@@ -139,9 +141,7 @@ module condcheck (
             default: CondEx = 1'bx;
         endcase
 endmodule
-// ADD CODE BELOW
-// Add code for the condlogic and condcheck modules. Remember, you may
-// reuse code from prior labs.
+
 module condlogic (
     clk,
     reset,
@@ -215,7 +215,7 @@ module condlogic (
 
 endmodule
 
-module controller (
+module controller ( // se va a encargar de las instrucciones por medio del decoder mientras revisa el condition logic
     clk,
     reset,
     Instr,
@@ -231,9 +231,9 @@ module controller (
     ResultSrc,
     ImmSrc,
     ALUControl,
-    Src_64b,
+    SrcExtra,
     FPUWrite,
-    RegSrc64b
+    RegSrcExtra
 );
     input wire clk;
     input wire reset;
@@ -250,9 +250,9 @@ module controller (
     output wire [1:0] ResultSrc;
     output wire [1:0] ImmSrc;
     output wire [2:0] ALUControl;
-    output wire Src_64b;
+    output wire SrcExtra;
     output wire FPUWrite;
-    output wire RegSrc64b;
+    output wire RegSrcExtra;
 
     wire [1:0] FlagW;
     wire PCS;
@@ -281,9 +281,9 @@ module controller (
         .ImmSrc(ImmSrc),
         .RegSrc(RegSrc),
         .ALUControl(ALUControl),
-        .Src_64b(Src_64b),
+        .SrcExtra(SrcExtra),
         .FpuW(FpuW),
-        .RegSrc64b(RegSrc64b)
+        .RegSrcExtra(RegSrcExtra)
     );
     condlogic cl(
         .clk(clk),
@@ -302,7 +302,8 @@ module controller (
         .FPUWrite(FPUWrite)
     );
 endmodule
-module datapath (
+
+module datapath ( // datapath abre a todo submodulo usado en el resto del programa
     clk,
     reset,
     Adr,
@@ -320,9 +321,9 @@ module datapath (
     ResultSrc,
     ImmSrc,
     ALUControl,
-    Src_64b,
+    SrcExtra,
     FPUWrite,
-    RegSrc64b
+    RegSrcExtra
 );
     input wire clk;
     input wire reset;
@@ -341,9 +342,10 @@ module datapath (
     input wire [1:0] ResultSrc;
     input wire [1:0] ImmSrc;
     input wire [2:0] ALUControl;
-    input wire Src_64b;
+    
+    input wire SrcExtra;
     input wire FPUWrite;
-    input wire RegSrc64b;
+    input wire RegSrcExtra;
 
     wire [31:0] PCNext;
     wire [31:0] PC;
@@ -356,7 +358,7 @@ module datapath (
     wire [31:0] RD2;
     wire [31:0] A;
     wire [31:0] ALUResult;
-    wire [31:0] ALUResult2;
+    wire [31:0] ALUResultEstra;
     wire [31:0] ALUOut;
     wire [31:0] ALUOut2;
     wire [3:0] RA1;
@@ -367,15 +369,6 @@ module datapath (
     wire [63:0] FWriteData;
     wire [63:0] FResult;
     wire [63:0] FPUResult;
-
-
-    // Your datapath hardware goes below. Instantiate each of the
-    // submodules that you need. Remember that you can reuse hardware
-    // from previous labs. Be sure to give your instantiated modules
-    // applicable names such as pcreg (PC register), adrmux
-    // (Address Mux), etc. so that your code is easier to understand.
-
-    // ADD CODE HERE
 
     flopenr #(32) pcreg(
         .clk(clk),
@@ -411,7 +404,7 @@ module datapath (
     mux2 #(4) ra1mulmux(
         .d0(Instr[19:16]),
         .d1(Instr[3:0]),
-        .s(RegSrc64b),
+        .s(RegSrcExtra),
         .y(_RA1)
     );
 
@@ -426,7 +419,7 @@ module datapath (
     mux2 #(4) ra2mulmux(
         .d0(Instr[3:0]),
         .d1(Instr[11:8]),
-        .s(RegSrc64b),
+        .s(RegSrcExtra),
         .y(_RA2)
     );
 
@@ -441,21 +434,21 @@ module datapath (
     mux2 #(4) a3mux(
         .d0(Instr[15:12]),
         .d1(Instr[19:16]),
-        .s(RegSrc64b),
+        .s(RegSrcExtra),
         .y(A3)
     );
 
 
     regfile rf(
         .clk(clk),
-        .we3(RegWrite),
+        .WriteEn3(RegWrite),
         .ra1(RA1),
         .ra2(RA2),
-        .wa3_32(A3),
-        .wa3_64(Instr[15:12]),
-        .wd3_32(Result),
-        .wd3_64(ALUOut2),
-        .Src_64b(lmulFlag),
+        .WriteA3(A3),
+        .WriteA3Extra(Instr[15:12]),
+        .WriteD3(Result),
+        .WriteD3Extra(ALUOut2),
+        .SrcExtra(lmulFlag),
         .r15(Result),
         .rd1(RD1),
         .rd2(RD2)
@@ -490,25 +483,25 @@ module datapath (
     );
 
     alu a(
-        .a(SrcA),
-        .b(SrcB),
+        .A(SrcA),
+        .B(SrcB),
         .ALUControl(ALUControl),
-        .Result32(ALUResult),
-        .Result64(ALUResult2),
+        .Result(ALUResult),
+        .ResultExtra(ALUResultEstra),
         .ALUFlags(ALUFlags)
     );
 
     fpu_regfile fpu_regfile(
         .clk(clk),
-        .we3(FPUWrite),
+        .WriteEn3(FPUWrite),
         .ra1(Instr[19:16]),
         .ra2(Instr[3:0]),
-        .wa3(Instr[15:12]),
+        .WriteA3(Instr[15:12]),
         .A1(Instr[7]),
         .A2(Instr[5]),
         .A3(Instr[6]),
-        .sod(Instr[8]),
-        .wd3(FResult),
+        .instr8(Instr[8]),
+        .WriteD3(FResult),
         .rd1(FRD1),
         .rd2(FRD2)
     );
@@ -544,7 +537,7 @@ module datapath (
     flopr #(32) alureg2(
         .clk(clk),
         .reset(reset),
-        .d(ALUResult2),
+        .d(ALUResultEstra),
         .q(ALUOut2)
     );
 
@@ -613,12 +606,6 @@ module mux2 (
     assign y = (s ? d1 : d0);
 endmodule
 
-// ADD CODE BELOW
-// Add needed building blocks below (i.e., parameterizable muxes,
-// registers, etc.). Remember, you can reuse code from previous labs.
-// We've also provided a parameterizable 3:1 mux below for your
-// convenience.
-
 module mux3 (
     d0,
     d1,
@@ -671,9 +658,9 @@ module decode (
     ImmSrc,
     RegSrc,
     ALUControl,
-    Src_64b,
+    SrcExtra,
     FpuW,
-    RegSrc64b
+    RegSrcExtra
 );
     input wire clk;
     input wire reset;
@@ -693,15 +680,15 @@ module decode (
     output wire [1:0] ALUSrcB;
     output wire [1:0] ImmSrc;
     output wire [1:0] RegSrc;
-    output wire Src_64b;
+    output wire SrcExtra;
     output reg [2:0] ALUControl;
     output wire FpuW;
-    output wire RegSrc64b; // Mul changes the operand order
+    output wire RegSrcExtra;
 
 
     wire Branch;
     wire ALUOp;
-    reg Flag_64b;
+    reg FlagExtrab;
 
     // Main FSM
     mainfsm fsm(
@@ -719,35 +706,35 @@ module decode (
         .MemW(MemW),
         .Branch(Branch),
         .ALUOp(ALUOp),
-        .Flag_64b(Flag_64b),
-        .Src_64b(Src_64b),
+        .FlagExtrab(FlagExtrab),
+        .SrcExtra(SrcExtra),
         .FpuW(FpuW)
     );
 
     always @(*) begin
-        Flag_64b = 0;
+        FlagExtrab = 0;
         if (ALUOp) begin
             if(Mop[3:0] == 4'b1001) begin
                 case(Funct[4:1])
-                    4'b0000: ALUControl = 3'b101; //MUL
+                    4'b0000: ALUControl = 3'b101; // Añadimos para el MUL
                     4'b0100: begin
-                         Flag_64b = 1;
-                         ALUControl = 3'b110; //UMULL
+                         FlagExtrab = 1;
+                         ALUControl = 3'b110; // Añadimos para el UMULL
                     end
                     4'b0110: begin
-                         Flag_64b = 1;
-                         ALUControl = 3'b111; //SMULL
+                         FlagExtrab = 1;
+                         ALUControl = 3'b111; //Añadimos para el SMULL
                     end
                 endcase
             end
             else begin
                 case (Funct[4:1])
-                    4'b0100: ALUControl = 3'b000; // ADD
-                    4'b0010: ALUControl = 3'b001; // SUB
-                    4'b0000: ALUControl = 3'b010; // AND
-                    4'b1100: ALUControl = 3'b011; // ORR
+                    4'b0100: ALUControl = 3'b000; // Añadimos para el ADD
+                    4'b0010: ALUControl = 3'b001; // Añadimos para el SUB
+                    4'b0000: ALUControl = 3'b010; // Añadimos para el AND
+                    4'b1100: ALUControl = 3'b011; // Añadimos para el ORR
 
-                    4'b0001: ALUControl = 3'b100; // EOR
+                    4'b0001: ALUControl = 3'b100; // Añadimos para el EOR
 
                     default: ALUControl = 3'bxx;
                 endcase
@@ -765,16 +752,12 @@ module decode (
 
     assign PCS = ((Rd == 4'b1111) & RegW) | Branch;
 
-    // Add code for the Instruction Decoder (Instr Decoder) below.
-    // Recall that the input to Instr Decoder is Op, and the outputs are
-    // ImmSrc and RegSrc. We've completed the ImmSrc logic for you.
-
     // Instr Decoder
     assign ImmSrc = Op;
     assign RegSrc[0] = (Op == 2'b10);
     assign RegSrc[1] = (Op == 2'b01);
 
-    assign RegSrc64b = Mop[3:0] == 4'b1001;
+    assign RegSrcExtra = Mop[3:0] == 4'b1001;
 
 endmodule
 
@@ -782,7 +765,6 @@ module fpu_single_adder (R1, R2, result);
     input [31:0] R1, R2;
     output [31:0] result;
 
-    //extract the exponent (8-bits) of 2 input
     wire [31:0] exponente1, exponente2;
 
     assign exponente1 = {24'b0, R1[30:23]}; assign exponente2 = {24'b0, R2[30:23]};
@@ -851,56 +833,58 @@ module fpu(a, b, double, Result);
     assign Result = double ? d_result : {32'h0000, f_result} ;
 
 endmodule
+
 module fpu_regfile (
     clk,
-    we3,
+    WriteEn3,
     ra1,
     ra2,
-    wa3,
+    WriteA3,
     A1,
     A2,
     A3,
-    sod,
-    wd3,
-    rd1,
+    instr8,
+    WriteD3,
+    Rd,
     rd2
 );
     input wire clk;
-    input wire we3;
+    input wire WriteEn3;
 
     input wire [3:0] ra1;
     input wire [3:0] ra2;
-    input wire [3:0] wa3;
+    input wire [3:0] WriteA3;
 
     input wire A1;
     input wire A2;
     input wire A3;
 
-    input wire sod; // 0 = single 1 = double Instr[8]
+    input wire instr8;
 
-    input wire [63:0] wd3;
+    input wire [63:0] WriteD3;
 
-    output wire [63:0] rd1;
+    output wire [63:0] Rd;
     output wire [63:0] rd2;
 
     reg [63:0] rf [15:0];
 
     always @(posedge clk)
-        if (we3)
-            if(sod == 1) // Double
-                rf[wa3] <= wd3;
+        if (WriteEn3)
+            if(instr8 == 1)
+                rf[WriteA3] <= WriteD3;
             else // Single
                 if(A3 == 1)
-                    rf[wa3][63:32] <= wd3[31:0];
+                    rf[WriteA3][63:32] <= WriteD3[31:0];
                 else
-                    rf[wa3][31:0] <= wd3[31:0];
+                    rf[WriteA3][31:0] <= WriteD3[31:0];
 
-    wire [31:0] rd1f = A1 == 1 ? rf[ra1][63:32] : rf[ra1][31:0];
+    wire [31:0] Rdf = A1 == 1 ? rf[ra1][63:32] : rf[ra1][31:0];
     wire [31:0] rd2f = A2 == 1 ? rf[ra2][63:32] : rf[ra2][31:0];
 
-    assign rd1 = sod == 1 ? rf[ra1] : {32'b0, rd1f};
-    assign rd2 = sod == 1 ? rf[ra2] : {32'b0, rd2f};
+    assign Rd = instr8 == 1 ? rf[ra1] : {32'b0, Rdf};
+    assign rd2 = instr8 == 1 ? rf[ra2] : {32'b0, rd2f};
 endmodule
+
 module mainfsm (
     clk,
     reset,
@@ -916,8 +900,8 @@ module mainfsm (
     MemW,
     Branch,
     ALUOp,
-    Flag_64b,
-    Src_64b,
+    FlagExtrab,
+    SrcExtra,
     FpuW
 );
     input wire clk;
@@ -934,12 +918,12 @@ module mainfsm (
     output wire MemW;
     output wire Branch;
     output wire ALUOp;
-    output wire Src_64b;
+    output wire SrcExtra;
     output wire FpuW;
     reg [3:0] state;
     reg [3:0] nextstate;
     reg [14:0] controls;
-    input wire Flag_64b;
+    input wire FlagExtrab;
 
     localparam [3:0] FETCH    = 0;
     localparam [3:0] DECODE   = 1;
@@ -961,11 +945,6 @@ module mainfsm (
             state <= FETCH;
         else
             state <= nextstate;
-
-
-    // ADD CODE BELOW
-      // Finish entering the next state logic below.  We've completed the
-      // first two states, FETCH and DECODE, for you.
 
       // next state logic
     always @(*)
@@ -993,7 +972,7 @@ module mainfsm (
             MEMWR:    nextstate = FETCH;
             EXECUTER: 
                 begin
-					if(Flag_64b == 1'b1) begin
+					if(FlagExtrab == 1'b1) begin
 						nextstate = ALUWB64;
 					end
 					else begin
@@ -1002,7 +981,7 @@ module mainfsm (
 				end
             EXECUTEI: 
                 begin
-					if(Flag_64b == 1'b1) begin
+					if(FlagExtrab == 1'b1) begin
 						nextstate = ALUWB64;
 					end
 					else begin
@@ -1016,10 +995,6 @@ module mainfsm (
             BRANCH:   nextstate = FETCH;
             default:  nextstate = FETCH;
         endcase
-
-    // ADD CODE BELOW
-    // Finish entering the output logic below.  We've entered the
-    // output logic for the first two states, FETCH and DECODE, for you.
 
     // state-dependent output logic
     always @(*)
@@ -1039,42 +1014,42 @@ module mainfsm (
             ALUWB64:   controls = 15'b100001000000000;
             default:  controls = 15'bxxxxxxxxxxxxxxx;
         endcase
-    assign {Src_64b, FpuW, NextPC, Branch, MemW, RegW, IRWrite, AdrSrc, ResultSrc, ALUSrcA, ALUSrcB, ALUOp} = controls;
+    assign {SrcExtra, FpuW, NextPC, Branch, MemW, RegW, IRWrite, AdrSrc, ResultSrc, ALUSrcA, ALUSrcB, ALUOp} = controls;
 endmodule
 
 module regfile (
     clk,
-    we3,
+    WriteEn3,
     ra1,
     ra2,
-    wa3_32,     //wa3
-    wa3_64,     //wa4
-    wd3_32,     //wd3
-    wd3_64,     //wd4
-    Src_64b,    
+    WriteA3,   
+    WriteA3Extra,
+    WriteD3
+    WriteD3Extra,
+    SrcExtra,    
     r15,
     rd1,
     rd2
 );
     input wire clk;
-    input wire we3;
+    input wire WriteEn3;
     input wire [3:0] ra1;
     input wire [3:0] ra2;
-    input wire [3:0] wa3_32;
-    input wire [3:0] wa3_64;
-    input wire [31:0] wd3_32;
-    input wire [31:0] wd3_64;
-    input wire Src_64b;
+    input wire [3:0] WriteA3;
+    input wire [3:0] WriteA3Extra;
+    input wire [31:0] WriteD3;
+    input wire [31:0] WriteD3Extra;
+    input wire SrcExtra;
     input wire [31:0] r15;
     output wire [31:0] rd1;
     output wire [31:0] rd2;
     reg [31:0] rf [14:0];
 
     always @(posedge clk)
-        if (we3) begin
-            rf[wa3_32] <= wd3_32;
-            if(Src_64b) begin
-                rf[wa3_64] <= wd3_64;
+        if (WriteEn3) begin
+            rf[WriteA3] <= WriteD3;
+            if(SrcExtra) begin
+                rf[WriteA3Extra] <= WriteD3Extra;
             end
         end
 
@@ -1087,9 +1062,6 @@ module double_adder (srcA, srcB, result);
     input [63:0] srcB;
 
     output [63:0] result;
-    //output [3:0] ALUFlags;
-
-    //wire N, Z, C, V;
 
     wire [63:0] expA = {56'b0, srcA[62:52]};
     wire [63:0] expB = {56'b0, srcB[62:52]};
@@ -1128,7 +1100,7 @@ module mem (
     output wire [31:0] rd;
     reg [31:0] RAM [0:127];
     initial $readmemh("memfile.dat", RAM);
-    assign rd = RAM[a[31:2]]; // word aligned
+    assign rd = RAM[a[31:2]];
     always @(posedge clk)
         if (we)
             RAM[a[31:2]] <= wd;

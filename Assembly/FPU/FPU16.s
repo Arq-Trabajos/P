@@ -13,32 +13,32 @@ FLPADD
   LSR R7, R7, #23                   ; realizamos shift al exponente hacia la derecha
 
 MATCH
-  CMP R6,R7
-  BEQ ADDMANTISA
-  BHI SHIFTB
+  CMP R6,R7                         ; comparamos los exponentes        
+  BEQ ADDMANTISA                    ; si es igual, nos vamos para la mantisa
+  BHI SHIFTB                        ; si el exponente es mayor, realizamos un shift a b
 
 SHIFTA
-  SUB R8, R7, R6
-  ASR R4, R4, R8
-  ADD R6,R6, R8
-  B  ADDMANTISA
+  SUB R8, R7, R6                    ; 
+  ASR R4, R4, R8                    ;
+  ADD R6,R6, R8                     ; actualizamos los exponentes
+  B  ADDMANTISA                     ; añadimos la mantisa
 
 SHIFTB
-  SUB R8, R6, R7
-  ASR R5, R5, R8
+  SUB R8, R6, R7                    ; 
+  ASR R5, R5, R8                    ; realizamos un shift right a la matisa de b
 
 ADDMANTISA
-  ADD R4, R4, R5
+  ADD R4, R4, R5                    ; la suma de la mantisa
 
 NORMALIZE
-  ANDS R5, R4, #0x10000000
-  BEG DONE
-  LSR R4, R4, #1
-  ADD R6, R6, #1
+  ANDS R5, R4, #0x10000000          ; extraemos el bit de overflow
+  BEG DONE                          ; 
+  LSR R4, R4, #1                    ; realizamos el shift right
+  ADD R6, R6, #1                    ; incrementamos el exponente
 
 DONE
-  AND R4, R4, R2
-  LSL R6, R6, #23
-  ORR R0, R4, R6
-  POP {R4,R5,R6,R7,R8}
-  MOV PC, LR
+  AND R4, R4, R2                    ; realizamos el mask
+  LSL R6, R6, #23                   ; realizamos el shift left
+  ORR R0, R4, R6                    ; cobinamos la mantisa y el exponente
+  POP {R4,R5,R6,R7,R8}              ; eliminamos los parámetros pop
+  MOV PC, LR                        ; retornamos la función
