@@ -163,161 +163,62 @@ module controller (
 	);
 endmodule
 
-// module decode (
-// 	input wire [1:0] Op,
-// 	input wire [5:0] Funct,
-// 	input wire [3:0] Rd,
-// 	output reg [1:0] FlagW,
-// 	output wire PCS,
-// 	output wire RegW,
-// 	output wire MemW,
-// 	output wire MemtoReg,
-// 	output wire ALUSrc,
-// 	output wire [1:0] ImmSrc,
-// 	output wire [1:0] RegSrc,
-// 	output reg [2:0] ALUControl
-	
-// );
-
-// 	reg [9:0] controls;
-// 	wire Branch;
-// 	wire ALUOp;
-// 	always @(*) begin
-// 		casex (Op)
-// 			2'b00:
-// 				if (Funct[5])
-// 					controls = 10'b0000101001;
-// 				else
-// 					controls = 10'b0000001001;
-// 			2'b01:
-// 				if (Funct[0])
-// 					controls = 10'b0001111000;
-// 				else
-// 					controls = 10'b1001110100;
-// 			2'b10: controls = 10'b0110100010;
-// 			default: controls = 10'bxxxxxxxxxx;
-// 		endcase
-// 	end
-// 	assign {RegSrc, ImmSrc, ALUSrc, MemtoReg, RegW, MemW, Branch, ALUOp} = controls;
-// 	always @(*) begin
-// 		if (ALUOp) begin
-// 			case (Funct[4:1])
-// 				4'b0100: ALUControl = 2'b00;
-// 				4'b0010: ALUControl = 2'b01;
-// 				4'b0000: ALUControl = 2'b10;
-// 				4'b1100: ALUControl = 2'b11;
-// 				default: ALUControl = 2'bxx;
-// 			endcase
-// 			FlagW[1] = Funct[0];
-// 			FlagW[0] = Funct[0] & ((ALUControl == 2'b00) | (ALUControl == 2'b01));
-// 		end
-// 		else begin
-// 			ALUControl = 2'b00;
-// 			FlagW = 2'b00;
-// 		end
-// 	end
-// 	assign PCS = ((Rd == 4'b1111) & RegW) | Branch;
-// endmodule
 module decode (
-    clk,
-    reset,
-    Op,
-    Mop,
-    Funct,
-    Rd,
-    FlagW,
-    PCS,
-    NextPC,
-    RegW,
-    MemW,
-    IRWrite,
-    AdrSrc,
-    ResultSrc,
-    ALUSrcA,
-    ALUSrcB,
-    ImmSrc,
-    RegSrc,
-    ALUControl,
-    Src_64b,
-    FpuW,
-    RegSrc64b
+	input wire [1:0] Op,
+	input wire [5:0] Funct,
+	input wire [3:0] Rd,
+	output reg [1:0] FlagW,
+	output wire PCS,
+	output wire RegW,
+	output wire MemW,
+	output wire MemtoReg,
+	output wire ALUSrc,
+	output wire [1:0] ImmSrc,
+	output wire [1:0] RegSrc,
+	output reg [2:0] ALUControl
+	
 );
-    input wire clk;
-    input wire reset;
-    input wire [1:0] Op;
-    input wire [5:0] Funct;
-    input wire [3:0] Mop;
-    input wire [3:0] Rd;
-    output reg [1:0] FlagW;
-    output wire PCS;
-    output wire NextPC;
-    output wire RegW;
-    output wire MemW;
-    output wire IRWrite;
-    output wire AdrSrc;
-    output wire [1:0] ResultSrc;
-    output wire [1:0] ALUSrcA;
-    output wire [1:0] ALUSrcB;
-    output wire [1:0] ImmSrc;
-    output wire [1:0] RegSrc;
-    output wire Src_64b;
-    output reg [2:0] ALUControl;
-    output wire FpuW;
-    output wire RegSrc64b; // Mul changes the operand order
 
-
-    wire Branch;
-    wire ALUOp;
-    reg Flag_64b;
-
-    always @(*) begin
-        Flag_64b = 0;
-        if (ALUOp) begin
-            if(Mop[3:0] == 4'b1001) begin
-                case(Funct[4:1])
-                    4'b0000: ALUControl = 3'b101; //MUL
-                    4'b0100: begin
-                         Flag_64b = 1;
-                         ALUControl = 3'b110; //UMULL
-                    end
-                    4'b0110: begin
-                         Flag_64b = 1;
-                         ALUControl = 3'b111; //SMULL
-                    end
-                endcase
-            end
-            else begin
-                case (Funct[4:1])
-                    4'b0100: ALUControl = 3'b000; // ADD
-                    4'b0010: ALUControl = 3'b001; // SUB
-                    4'b0000: ALUControl = 3'b010; // AND
-                    4'b1100: ALUControl = 3'b011; // ORR
-
-                    4'b0001: ALUControl = 3'b100; // EOR
-
-                    default: ALUControl = 3'bxx;
-                endcase
-            end
-            FlagW[1] = Funct[0];
-            FlagW[0] = Funct[0] & ((ALUControl == 3'b000) | (ALUControl == 3'b001));
-        end
-        else begin
-            ALUControl = 3'b000;
-            FlagW = 2'b00;
-        end
-    end
-
-    // PC Logic
-
-    assign PCS = ((Rd == 4'b1111) & RegW) | Branch; 
-    // Instr Decoder
-    assign ImmSrc = Op;
-    assign RegSrc[0] = (Op == 2'b10);
-    assign RegSrc[1] = (Op == 2'b01);
-
-    assign RegSrc64b = Mop[3:0] == 4'b1001;
-
+	reg [9:0] controls;
+	wire Branch;
+	wire ALUOp;
+	always @(*) begin
+		casex (Op)
+			2'b00:
+				if (Funct[5])
+					controls = 10'b0000101001;
+				else
+					controls = 10'b0000001001;
+			2'b01:
+				if (Funct[0])
+					controls = 10'b0001111000;
+				else
+					controls = 10'b1001110100;
+			2'b10: controls = 10'b0110100010;
+			default: controls = 10'bxxxxxxxxxx;
+		endcase
+	end
+	assign {RegSrc, ImmSrc, ALUSrc, MemtoReg, RegW, MemW, Branch, ALUOp} = controls;
+	always @(*) begin
+		if (ALUOp) begin
+			case (Funct[4:1])
+				4'b0100: ALUControl = 2'b00;
+				4'b0010: ALUControl = 2'b01;
+				4'b0000: ALUControl = 2'b10;
+				4'b1100: ALUControl = 2'b11;
+				default: ALUControl = 2'bxx;
+			endcase
+			FlagW[1] = Funct[0];
+			FlagW[0] = Funct[0] & ((ALUControl == 2'b00) | (ALUControl == 2'b01));
+		end
+		else begin
+			ALUControl = 2'b00;
+			FlagW = 2'b00;
+		end
+	end
+	assign PCS = ((Rd == 4'b1111) & RegW) | Branch;
 endmodule
+
 module condlogic (
 	input wire clk,
 	input wire reset,
@@ -454,11 +355,11 @@ module datapath (
 	);
 	regfile rf(
 		.clk(clk),
-		.we3(RegWrite),
+		.WriteEn3(RegWrite),
 		.ra1(RA1),
 		.ra2(RA2),
-		.wa3(Instr[15:12]),
-		.wd3(Result),
+		.WriteA3(Instr[15:12]),
+		.WriteD3(Result),
 		.r15(PCPlus8),
 		.rd1(SrcA),
 		.rd2(WriteData)
@@ -504,11 +405,11 @@ module datapath (
 endmodule
 module regfile (
 	input wire clk,
-	input wire we3,
+	input wire WriteEn3,
 	input wire [3:0] ra1,
 	input wire [3:0] ra2,
-	input wire [3:0] wa3,
-	input wire [31:0] wd3,
+	input wire [3:0] WriteA3,
+	input wire [31:0] WriteD3,
 	input wire [31:0] r15,
 	output wire [31:0] rd1,
 	output wire [31:0] rd2
@@ -516,8 +417,8 @@ module regfile (
 
 	reg [31:0] rf [14:0];
 	always @(posedge clk) begin
-		if (we3)
-			rf[wa3] <= wd3;
+		if (WriteEn3)
+			rf[WriteA3] <= WriteD3;
 	end
 	assign rd1 = (ra1 == 4'b1111 ? r15 : rf[ra1]);
 	assign rd2 = (ra2 == 4'b1111 ? r15 : rf[ra2]);
