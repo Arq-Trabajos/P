@@ -38,30 +38,30 @@ module arm (
     WriteData,
     ReadData
 );
-    input wire clk;
+    input wire clk;         
     input wire reset;
     output wire MemWrite;
     output wire [31:0] Adr;
     output wire [31:0] WriteData;
     input wire [31:0] ReadData;
-    wire [31:0] Instr;
-    wire [3:0] ALUFlags;
-    wire PCWrite;
-    wire RegWrite;
-    wire IRWrite;
-    wire AdrSrc;
-    wire [1:0] RegSrc;
-    wire [1:0] ALUSrcA;
-    wire [1:0] ALUSrcB;
-    wire [1:0] ImmSrc;
-    wire [2:0] ALUControl;
-    wire [1:0] ResultSrc;
+    wire [31:0] Instr;            // util para saber que operacion se hara a elementos utilizados
+    wire [3:0] ALUFlags;          // NZOC
+    wire PCWrite;                 // Permite escribir en el PC
+    wire RegWrite;                // Permite escribir en el Register file
+    wire IRWrite;                 // Instruction Register write enabler, permite que el instruction register sea editado
+    wire AdrSrc;                  // Address source, se usa para cosas como fetch, decode
+    wire [1:0] RegSrc;            // contiene flagas para distintas instrucciones del register (allocation)
+    wire [1:0] ALUSrcA;           // enable de mux saliendo de registers para poder pasar al alu
+    wire [1:0] ALUSrcB;           // enable para mux saliendo de registers e immediates para pasar al alu
+    wire [1:0] ImmSrc;            // para ver sie en algun momento se necesita extender el instruction
+    wire [2:0] ALUControl;        // contiene distintas instrucciones, mul, add, etc
+    wire [1:0] ResultSrc;         // se requiere cuando se necesita un resultado pasado para continuar una operacion
     
-    wire SrcExtra;
+    wire SrcExtra;                // se requiere cuando se necesita un resultado pasado para continuar una operacion mayor a 64 bits
     wire FPUWrite;
-    wire RegSrcExtra;
+    wire RegSrcExtra;             // contiene flagas para distintas instrucciones del register (allocation)
 
-    controller c( // module de control unit dentro de nuestro procesador
+    controller c(                 // module de control unit dentro de nuestro procesador
         .clk(clk),
         .reset(reset),
         .Instr(Instr),
@@ -82,7 +82,7 @@ module arm (
         .RegSrcExtra(RegSrcExtra)
     );
 
-    datapath dp( // module de datapath de nuestro procesador, esto subsecuente mente se divide a mas submodulos de filtro de infromacion
+    datapath dp(                  // module de datapath de nuestro procesador, esto subsecuente mente se divide a mas submodulos de filtro de infromacion
         .clk(clk),
         .reset(reset),
         .Adr(Adr),
@@ -106,12 +106,12 @@ module arm (
     );
 endmodule
 
-module condcheck ( // este modulo se puede llamar para prender los flags de negative zero, carry  y overflow estan prendidas
+module condcheck (                // este modulo se puede llamar para prender los flags de negative zero, carry  y overflow estan prendidas
     Cond,
     Flags,
     CondEx
 );
-    input wire [3:0] Cond; // cond nos permite saber cual de los flags se va a prender y pasamos a condex los resultados
+    input wire [3:0] Cond;        // cond nos permite saber cual de los flags se va a prender y pasamos a condex los resultados
     input wire [3:0] Flags;
     output reg CondEx;
     wire neg;
@@ -358,7 +358,7 @@ module datapath ( // datapath abre a todo submodulo usado en el resto del progra
     wire [31:0] RD2;
     wire [31:0] A;
     wire [31:0] ALUResult;
-    wire [31:0] ALUResultEstra;
+    wire [31:0] ALUResultExtra;
     wire [31:0] ALUOut;
     wire [31:0] ALUOut2;
     wire [3:0] RA1;
@@ -487,7 +487,7 @@ module datapath ( // datapath abre a todo submodulo usado en el resto del progra
         .B(SrcB),
         .ALUControl(ALUControl),
         .Result(ALUResult),
-        .ResultExtra(ALUResultEstra),
+        .ResultExtra(ALUResultExtra),
         .ALUFlags(ALUFlags)
     );
 
@@ -537,7 +537,7 @@ module datapath ( // datapath abre a todo submodulo usado en el resto del progra
     flopr #(32) alureg2(
         .clk(clk),
         .reset(reset),
-        .d(ALUResultEstra),
+        .d(ALUResultExtra),
         .q(ALUOut2)
     );
 
@@ -638,6 +638,7 @@ module extend (
             default: ExtImm = 32'bxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx;
         endcase
 endmodule
+
 module decode (
     clk,
     reset,
@@ -829,7 +830,7 @@ module fpu(a, b, double, Result);
         .srcB(b),
         .result(d_result)
     );
-
+ 
     assign Result = double ? d_result : {32'h0000, f_result} ;
 
 endmodule
