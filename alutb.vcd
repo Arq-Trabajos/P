@@ -1,0 +1,59 @@
+$date
+	Tue Dec 14 18:23:26 2021
+$end
+$version
+	Icarus Verilog
+$end
+$timescale
+	1ns
+$end
+$scope module alu_tb $end
+$var wire 32 ! ResultExtra [31:0] $end
+$var wire 32 " Result [31:0] $end
+$var wire 4 # ALUFlags [3:0] $end
+$var reg 32 $ A [31:0] $end
+$var reg 3 % ALUControl [2:0] $end
+$var reg 32 & B [31:0] $end
+$scope module ALUtest $end
+$var wire 32 ' A [31:0] $end
+$var wire 3 ( ALUControl [2:0] $end
+$var wire 32 ) B [31:0] $end
+$var wire 1 * Carry $end
+$var wire 1 + Overflow $end
+$var wire 1 , Zero $end
+$var wire 32 - mux2_1 [31:0] $end
+$var wire 33 . Sum [32:0] $end
+$var wire 64 / Product [63:0] $end
+$var wire 1 0 Negative $end
+$var wire 32 1 FactorB [31:0] $end
+$var wire 32 2 FactorA [31:0] $end
+$var wire 4 3 ALUFlags [3:0] $end
+$var reg 32 4 Result [31:0] $end
+$var reg 32 5 ResultExtra [31:0] $end
+$upscope $end
+$upscope $end
+$enddefinitions $end
+#3
+$dumpvars
+b0 5
+b111000010 4
+b0 3
+b1010 2
+b101101 1
+00
+b111000010 /
+b11111111111111111111111111011101 .
+b11111111111111111111111111010010 -
+0,
+0+
+0*
+b101101 )
+b111 (
+b1010 '
+b101101 &
+b111 %
+b1010 $
+b0 #
+b111000010 "
+b0 !
+$end

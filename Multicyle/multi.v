@@ -1000,20 +1000,20 @@ module mainfsm (
     // state-dependent output logic
     always @(*)
         case (state)
-            FETCH:    controls = 15'b001000101001100;
-            DECODE:   controls = 15'b000000001001100;
-            EXECUTER: controls = 15'b000000000000001;
-            EXECUTEI: controls = 15'b000000000000011;
-            ALUWB:    controls = 15'b000001000000000;
-            MEMADR:   controls = 15'b000000000000010;
-            MEMWR:    controls = 15'b000010010000000;
-            MEMRD:    controls = 15'b000000010000000;
-            MEMWB:    controls = 15'b000001000100000;
-            BRANCH:   controls = 15'b000100001000010;
-            EXECUTEF: controls = 15'b000000000000000;
-            FPUWB:    controls = 15'b010000000000000;
+            FETCH:     controls = 15'b001000101001100;
+            DECODE:    controls = 15'b000000001001100;
+            EXECUTER:  controls = 15'b000000000000001;
+            EXECUTEI:  controls = 15'b000000000000011;
+            ALUWB:     controls = 15'b000001000000000;
+            MEMADR:    controls = 15'b000000000000010;
+            MEMWR:     controls = 15'b000010010000000;
+            MEMRD:     controls = 15'b000000010000000;
+            MEMWB:     controls = 15'b000001000100000;
+            BRANCH:    controls = 15'b000100001000010;
+            EXECUTEF:  controls = 15'b000000000000000;
+            FPUWB:     controls = 15'b010000000000000;
             ALUWB64:   controls = 15'b100001000000000;
-            default:  controls = 15'bxxxxxxxxxxxxxxx;
+            default:   controls = 15'bxxxxxxxxxxxxxxx;
         endcase
     assign {SrcExtra, FpuW, NextPC, Branch, MemW, RegW, IRWrite, AdrSrc, ResultSrc, ALUSrcA, ALUSrcB, ALUOp} = controls;
 endmodule

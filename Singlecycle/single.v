@@ -1,4 +1,4 @@
-`include "alu.v"
+`include "ALU2.v"
 `include "fpu.v"
 
 
@@ -26,7 +26,6 @@ module top (
 		.a(PC),
 		.rd(Instr)
 	);
-	
 	dmem dmem(
 		.clk(clk),
 		.we(MemWrite),
@@ -137,6 +136,7 @@ module controller (
 	decode dec(
 		.Op(Instr[27:26]),
 		.Funct(Instr[25:20]),
+		.MulOp(Instr[7:4]),
 		.Rd(Instr[15:12]),
 		.FlagW(FlagW),
 		.PCS(PCS),
@@ -166,6 +166,7 @@ endmodule
 module decode (
 	input wire [1:0] Op,
 	input wire [5:0] Funct,
+	input wire [3:0] MulOp,
 	input wire [3:0] Rd,
 	output reg [1:0] FlagW,
 	output wire PCS,
@@ -199,25 +200,59 @@ module decode (
 		endcase
 	end
 	assign {RegSrc, ImmSrc, ALUSrc, MemtoReg, RegW, MemW, Branch, ALUOp} = controls;
+	initial begin
+		$display("Hello");
+	end
 	always @(*) begin
-		if (ALUOp) begin
-			case (Funct[4:1])
-				4'b0100: ALUControl = 2'b00;
-				4'b0010: ALUControl = 2'b01;
-				4'b0000: ALUControl = 2'b10;
-				4'b1100: ALUControl = 2'b11;
-				default: ALUControl = 2'bxx;
-			endcase
-			FlagW[1] = Funct[0];
-			FlagW[0] = Funct[0] & ((ALUControl == 2'b00) | (ALUControl == 2'b01));
+		if(ALUOp) begin
+			if(MulOp[3:0] == 4'b1001) begin
+				case(Funct[4:1])
+					// MUL->
+					4'b0000: 	ALUControl = 3'b101;
+				endcase
+			end
+			else begin
+					case(Funct[4:1])
+   		                 4'b0100: ALUControl = 3'b000; // ADD
+   		                 4'b0010: ALUControl = 3'b001; // SUB
+   		                 4'b0000: ALUControl = 3'b010; // AND
+   		                 4'b1100: ALUControl = 3'b011; // ORR
+							default: ALUControl = 3'bxx;
+					endcase
+					FlagW[1] = Funct[0];
+					FlagW[0] = Funct[0] & ((ALUControl == 3'b000) | (ALUControl == 3'b001));
+			end
 		end
 		else begin
-			ALUControl = 2'b00;
-			FlagW = 2'b00;
+			ALUControl = 3'b000;
+			FlagW = 3'b00;
 		end
 	end
+	// always @(*) begin
+	// 	if (ALUOp) begin
+	// 		case (Funct[4:1])
+	// 			4'b0100: ALUControl = 3'b000;
+	// 			4'b0010: ALUControl = 3'b001;
+	// 			4'b0000: ALUControl = 3'b010;
+	// 			// MUL 
+	// 			4'b0101: ALUControl = 3'b100;
+
+	// 			4'b1100: ALUControl = 3'b011;
+	// 			default: ALUControl = 3'bxxx;
+	// 		endcase
+
+	// 				end
+	// 	else begin
+	// 		ALUControl = 3'b000;
+	// 		Fl
+	// 	end
+	// end
 	assign PCS = ((Rd == 4'b1111) & RegW) | Branch;
-endmodule
+	assign ImmSrc = Op;
+    assign RegSrc[0] = (Op == 2'b10);
+    assign RegSrc[1] = (Op == 2'b01);
+
+endmodule                    //  
 
 module condlogic (
 	input wire clk,
@@ -315,6 +350,7 @@ module datapath (
 	wire [31:0] SrcA;
 	wire [31:0] SrcB;
 	wire [31:0] Result;
+	wire [31:0] ResultExtra;
 	wire [3:0] RA1;
 	wire [3:0] RA2;
 	wire [3:0] ALUFlags1, FPUFlags;
@@ -382,10 +418,11 @@ module datapath (
 		.y(SrcB)
 	);
 	alu alu(
-		.A(SrcA),
-		.B(SrcB),
+		.a(SrcA),
+		.b(SrcB),
 		.ALUControl(ALUControl),
 		.Result(ALUResult1),
+		.ResultExtra(ResultExtra),
 		.ALUFlags(ALUFlags1)
 	);
 	

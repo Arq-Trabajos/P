@@ -21,6 +21,7 @@ module alu (
 			3'b00?: {ResultExtra, Result} = {32'b0, Sum[31:0]}; // ALUControl signal 00/01 means ADD and SUB, so either way A and B will be added
 			3'b010: {ResultExtra, Result} = {32'b0 , A & B}; // ALUControl signal 10 means AND
 			3'b011: {ResultExtra, Result} = {32'b0, A | B}; // ALUControl signal 01 means OR
+			3'b100: {ResultExtra, Result} = {32'b0, A * B}; 
             //MUL: 100
             //SMULL: 110
             //UMULL: 111

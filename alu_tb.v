@@ -1,4 +1,5 @@
 `include "alu.v"
+`timescale 1ns/1ns
 module alu_tb;
 
     reg [2:0] ALUControl; 
@@ -29,7 +30,10 @@ module alu_tb;
         B = 45;
         #1;
         $display("UMULL(%b): %x x %x = (lower 32) %x (higher 32) %x; Flags: %b",ALUControl, A, B, Result, ResultExtra, ALUFlags);
-
+		$dumpfile("alutb.vcd");
+		$dumpvars;
+        $finish;
+	    
+ 
     end
-
 endmodule
